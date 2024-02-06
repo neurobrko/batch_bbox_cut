@@ -25,6 +25,7 @@ _boundigBox_ you can set custom bounding box as list: \[left, top, right, bottom
 **Bounding Box:** -b | If only one number is supplied, all sides will be set to it. If you want each side different supply four numbers separated with comas, without spaces.
 
 ## TO DO
+* progress bar
 * add prefix and/or suffix to new filename
 * resize longer edge of image to specified size
 * resample image to specified resolution
