@@ -12,7 +12,12 @@ File _preferences.py_ contains all settings, only some can be changed with CLI a
 
 ### preferences.py
 _extlist_ contains file extensions to be processed. Currently tested only with _jpg_ and _jpeg_. Specify extensions in lowercase. Also uppercase extensions will be processed.
+_welcomeMsg_ turns on or off Welcome message.
+_overwrite_ if True, ten original files will be overwritten. If False, new directory specified by _processedDir_ will be created (if it doesn't exist) and new files will be written there. Directory is created in the same direcotry as original files.
+_processedDir_ see _overwrite_
+_boundigBox_ you can set custom bounding box as list: \[left, top, right, bottom\]
 
+### Command line arguments
 **Help:** -h | Prints out help.  
 **Welcome message:** -w | Turn on/off Welcome message.
 **Path to directory:** -d | If not specified with -d flag the script will prompt you. You can use both full or relative path.  
