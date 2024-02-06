@@ -19,13 +19,19 @@ ap.add_argument(
     metavar="0 | 0,0,0,0",
 )
 # ap.add_argument(
+#     "-o",
+#     "--overwrite",
+#     help="Do not overwrite original files and save copies to specified directory in original directory. Will be created if needed.",
+#     metavar="DIRNAME",
+# )
+# ap.add_argument(
+#     "-r", "--dpi", help="Change resolution to specified dpi.", metavar="NUM"
+# )
+# ap.add_argument(
 #     "-s",
 #     "--resize",
 #     help="Resize longer side to specified size in pixels.",
 #     metavar="NUM",
-# )
-# ap.add_argument(
-#     "-r", "--dpi", help="Change resolution to specified dpi.", metavar="NUM"
 # )
 ap.add_argument(
     "-w",
