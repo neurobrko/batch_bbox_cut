@@ -5,7 +5,7 @@
 ## Description
 Script for cutting out white bounding box of images in specified folder.
 Few settings can be tweaked either by editing _preferences.py_ or with command line arguments.
-For now (1.0.03) those are: custom bounding box and overwriting original files.
+For now (1.0.03) those are: custom bounding box and overwriting original files, turn on/off welcome message.
 
 ## Usage
 CLI arguments overrides _preferences.py_ therefore it is recommended to use _preferences.py_ for default settings and CLI arguments for per use tweaks.  
