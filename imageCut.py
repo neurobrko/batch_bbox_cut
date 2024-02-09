@@ -18,12 +18,18 @@ ap.add_argument(
     help="Bounding box size. Single number to specify all, or four numbers (separated with comas without spaces - left,top,right,bottom) to specify each. ",
     metavar="0 | 0,0,0,0",
 )
-# ap.add_argument(
-#     "-o",
-#     "--overwrite",
-#     help="Do not overwrite original files and save copies to specified directory in original directory. Will be created if needed.",
-#     metavar="DIRNAME",
-# )
+ap.add_argument(
+    "-o",
+    "--overwrite",
+    help="Overwrite original images. Prefix and suffix are not applied.",
+    action="store_true",
+)
+ap.add_argument(
+    "-n",
+    "--nooverwrite",
+    help="Do not overwrite original files and save copies to specified directory in original directory. Will be created if needed.",
+    metavar="DIRNAME",
+)
 # ap.add_argument(
 #     "-r", "--dpi", help="Change resolution to specified dpi.", metavar="NUM"
 # )
@@ -120,6 +126,15 @@ else:
     processDir = user_input()
 
 # check overwriting of original images
+# reset overwrite and processedDir variables if specified from CLI
+# Check -o first and -n after that. Thus way if both are specified, nooverwrite has priority
+if args["overwrite"]:
+    overwrite = True
+if args["nooverwrite"]:
+    overwrite = False
+    processedDir = args["nooverwrite"]
+
+
 if not overwrite:
     destPath = os.path.join(processDir, processedDir)
     if not Path(destPath).is_dir():

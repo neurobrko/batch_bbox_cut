@@ -5,7 +5,7 @@
 ## Description
 Script for cutting out white bounding box of images in specified folder.
 Few settings can be tweaked either by editing _preferences.py_ or with command line arguments.
-For now (1.0.03) those are: custom bounding box, overwriting original files and toggle welcome message.
+For now (1.0.04) those are: custom bounding box, overwriting original files and toggle welcome message.
 
 ## Usage
 CLI arguments overrides _preferences.py_ therefore it is recommended to use _preferences.py_ for default settings and CLI arguments for per use tweaks.  
@@ -22,12 +22,14 @@ File _preferences.py_ contains all settings, only some can be changed with CLI a
 -h | **Help:** Prints out help.<br>
 -w | **Welcome message:** Turn on/off Welcome message.<br>
 -d | **Path to directory:** If not specified with -d flag the script will prompt you. You can use both full or relative path.<br>
--b | **Bounding Box:** If only one number is supplied, all sides will be set to it. If you want each side different supply four numbers separated with comas, without spaces.
+-n | **No overwrite:** Do not overwrite original images. Directory name for processed images must be supplied.<br>
+-o | **Overwrite:** Overwrite original images. If both _-n_ and _-o_ are specified by accident, _-o_ is ignored.
+-b | **Bounding Box:** If only one number is supplied, all sides will be set same. If you want each side different supply four numbers separated with comas, without spaces.
 
 ## TO DO
-- [ ] progress bar
 - [ ] add prefix and/or suffix to new filename
 - [ ] resize image with longer edge according to specified size
 - [ ] resample image to specified resolution
-- [ ] add CLI arguments (-o, -n) for overwrite
+- [ ] print report on exit
+- [ ] progress bar
 - [ ] internalization (slovak and english)
