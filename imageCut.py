@@ -135,7 +135,6 @@ if args["nooverwrite"]:
     overwrite = False
     processedDir = args["nooverwrite"]
 
-
 if not overwrite:
     destPath = os.path.join(processDir, processedDir)
     if not Path(destPath).is_dir():
@@ -153,7 +152,7 @@ imgList = []
 for img in extList:
     imgList.extend(glob.glob(os.path.join(processDir, img)))
 
-with alive_bar() as bar:
+with alive_bar(len(imgList), bar="classic", spinner="dots") as bar:
     for i, imgPath in enumerate(imgList):
         with Image.open(imgPath) as img:
             imgBase = os.path.basename(imgPath)
@@ -169,9 +168,9 @@ with alive_bar() as bar:
             img.save(os.path.join(destPath, imgBase))
             bar()
 
-print("Finished!")
 if len(imgList) < 2:
     exitMsg = "1 file was processed."
 else:
     exitMsg = str(len(imgList)) + " files were processed."
 print(exitMsg)
+print("Done!")
