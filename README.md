@@ -23,7 +23,7 @@ File _preferences.py_ contains all settings, only some can be changed with CLI a
 -w | **Welcome message:** Turn on/off Welcome message.<br>
 -d | **Path to directory:** If not specified with -d flag the script will prompt you. You can use both full or relative path.<br>
 -n | **No overwrite:** Do not overwrite original images. Directory name for processed images must be supplied.<br>
--o | **Overwrite:** Overwrite original images. If both _-n_ and _-o_ are specified by accident, _-o_ is ignored.
+-o | **Overwrite:** Overwrite original images. If both _-n_ and _-o_ are specified by accident, _-o_ is ignored.<br>
 -b | **Bounding Box:** If only one number is supplied, all sides will be set same. If you want each side different supply four numbers separated with comas, without spaces.
 
 ## TO DO
