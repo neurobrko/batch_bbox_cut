@@ -1,6 +1,7 @@
 #!.venv/bin/python3
 
 from preferences import *
+from alive_progress import alive_bar
 from pathlib import Path
 from PIL import Image, ImageOps
 import os
@@ -152,19 +153,21 @@ imgList = []
 for img in extList:
     imgList.extend(glob.glob(os.path.join(processDir, img)))
 
-for i, imgPath in enumerate(imgList):
-    with Image.open(imgPath) as img:
-        imgBase = os.path.basename(imgPath)
-        # calculate custom bounding box
-        imgCropBBox = ImageOps.invert(img).getbbox()
-        imgCustomBBox = (
-            imgCropBBox[0] - customBoundingBox[0],
-            imgCropBBox[1] - customBoundingBox[1],
-            imgCropBBox[2] + customBoundingBox[2],
-            imgCropBBox[3] + customBoundingBox[3],
-        )
-        img = img.crop(imgCustomBBox)
-        img.save(os.path.join(destPath, imgBase))
+with alive_bar() as bar:
+    for i, imgPath in enumerate(imgList):
+        with Image.open(imgPath) as img:
+            imgBase = os.path.basename(imgPath)
+            # calculate custom bounding box
+            imgCropBBox = ImageOps.invert(img).getbbox()
+            imgCustomBBox = (
+                imgCropBBox[0] - customBoundingBox[0],
+                imgCropBBox[1] - customBoundingBox[1],
+                imgCropBBox[2] + customBoundingBox[2],
+                imgCropBBox[3] + customBoundingBox[3],
+            )
+            img = img.crop(imgCustomBBox)
+            img.save(os.path.join(destPath, imgBase))
+            bar()
 
 print("Finished!")
 if len(imgList) < 2:

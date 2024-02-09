@@ -3,9 +3,9 @@
 **Author:** Marek Paulík | elvis@elvis.sk
 
 ## Description
-Script for cutting out white bounding box of images in specified folder.
+Script for cutting out white bounding box of images in specified folder with simple progress bar indicating running of the script.
 Few settings can be tweaked either by editing _preferences.py_ or with command line arguments.
-For now (1.0.04) those are: custom bounding box, overwriting original files and toggle welcome message.
+For now (1.0.05) those are: custom bounding box, overwriting original files and toggle welcome message.
 
 ## Usage
 CLI arguments overrides _preferences.py_ therefore it is recommended to use _preferences.py_ for default settings and CLI arguments for per use tweaks.  
@@ -31,5 +31,4 @@ File _preferences.py_ contains all settings, only some can be changed with CLI a
 - [ ] resize image with longer edge according to specified size
 - [ ] resample image to specified resolution
 - [ ] print report on exit
-- [ ] progress bar
 - [ ] internalization (slovak and english)
