@@ -21,7 +21,8 @@ File _preferences.py_ contains all settings, only some can be changed with CLI a
 ***pfxSeparator*** = Separator between prefix and filename. If prefix is not specified, separator is ignored.<sup>_WARN_</sup><br>
 ***suffix*** = Add suffix to new filename.<sup>_WARN_</sup><br>
 ***sfxSeparator*** = Separator between filename and suffix. If suffix is not specified, separator is ignored.<sup>_WARN_</sup><br>
-<sup>***WARN***</sup> Prefix, suffix and separators are ignored if overwrite is active! Please use valid characters in filenames, there is no filename validation implemented yet!
+
+<sup>***WARN***</sup> _Prefix, suffix and separators are ignored if overwrite is active! Please use valid characters in filenames, there is no filename validation implemented yet!_
 
 ### Command line arguments
 -h | **Help:** Prints out help.<br>
@@ -34,7 +35,8 @@ File _preferences.py_ contains all settings, only some can be changed with CLI a
 -z | **Suffix:** Add suffix to filename.<sup>_WARN_</sup><br>
 -Z | **Suffix separator** Separator between _filename_ and _prefix_.<sup>_WARN_</sup><br>
 -w | **Welcome message:** Turn on/off Welcome message.<br>
-<sup>***WARN***</sup> Prefix, suffix and separators are ignored if overwrite is active! Please use valid characters in filenames, there is no filename validation implemented yet!
+
+<sup>***WARN***</sup> _Prefix, suffix and separators are ignored if overwrite is active! Please use valid characters in filenames, there is no filename validation implemented yet!_
 
 ## TO DO
 - [ ] resize image with longer edge according to specified size
