@@ -31,6 +31,30 @@ ap.add_argument(
     help="Do not overwrite original files and save copies to specified directory in original directory. Will be created if needed.",
     metavar="DIRNAME",
 )
+ap.add_argument(
+    "-a",
+    "--prefix",
+    help="Specified prefix will be added to processed filename if overwrite is not applied.",
+    metavar="PFX",
+)
+ap.add_argument(
+    "-A",
+    "--pfxseparator",
+    help="Separator between prefix and filename.",
+    metavar="CHARS",
+)
+ap.add_argument(
+    "-z",
+    "--suffix",
+    help="Specified suffix will be added to processed filename if overwrite is not applied.",
+    metavar="PFX",
+)
+ap.add_argument(
+    "-Z",
+    "--sfxseparator",
+    help="Separator between filename and suffix.",
+    metavar="CHARS",
+)
 # ap.add_argument(
 #     "-r", "--dpi", help="Change resolution to specified dpi.", metavar="NUM"
 # )
@@ -152,10 +176,33 @@ imgList = []
 for img in extList:
     imgList.extend(glob.glob(os.path.join(processDir, img)))
 
+# if overwrite is True, remove prefix and suffix with its separators
+if overwrite:
+    prefix = pfxSeparator = sfxSeparator = suffix = ""
+else:
+    # check if suffix and prefix and respective separators were specified in CLI.
+    if args["prefix"]:
+        prefix = args["prefix"]
+    if args["pfxseparator"]:
+        pfxSeparator = args["pfxseparator"]
+    if args["sfxseparator"]:
+        sfxSeparator = args["sfxseparator"]
+    if args["suffix"]:
+        suffix = args["suffix"]
+    # remove prefix and/or suffix separators, if prefix and/or suffix is not definied
+    if not prefix:
+        pfxSeparator = ""
+    if not suffix:
+        sfxSeparator = ""
+
 with alive_bar(len(imgList), bar="classic", spinner="dots") as bar:
     for i, imgPath in enumerate(imgList):
         with Image.open(imgPath) as img:
-            imgBase = os.path.basename(imgPath)
+            # add prefix and suffix to filename
+            imgFilename, imgExt = os.path.splitext(os.path.basename(imgPath))
+            imgBase = (
+                prefix + pfxSeparator + imgFilename + sfxSeparator + suffix + imgExt
+            )
             # calculate custom bounding box
             imgCropBBox = ImageOps.invert(img).getbbox()
             imgCustomBBox = (
@@ -165,7 +212,8 @@ with alive_bar(len(imgList), bar="classic", spinner="dots") as bar:
                 imgCropBBox[3] + customBoundingBox[3],
             )
             img = img.crop(imgCustomBBox)
-            img.save(os.path.join(destPath, imgBase))
+            saveFile = os.path.join(destPath, imgBase)
+            img.save(saveFile)
             bar()
 
 if len(imgList) < 2:
