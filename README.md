@@ -21,7 +21,7 @@ File _preferences.py_ contains all settings, only some can be changed with CLI a
 ***pfxSeparator*** Separator between prefix and filename. If prefix is not specified, separator is ignored.<sup>_WARN_</sup><br>
 ***suffix*** Add suffix to new filename.<sup>_WARN_</sup><br>
 ***sfxSeparator*** Separator between filename and suffix. If suffix is not specified, separator is ignored.<sup>_WARN_</sup><br>
-***ppi*** Change resolution of processed image to specified value. will not change if set to 0.
+***ppi*** Change resolution of processed image to specified value. Will not change if set to 0.
 
 <sup>***WARN***</sup> _Prefix, suffix and separators are ignored if overwrite is active! Please use valid characters in filenames, there is no filename validation implemented yet!_
 
@@ -31,7 +31,7 @@ File _preferences.py_ contains all settings, only some can be changed with CLI a
 -b | **Bounding Box:** If only one number is supplied, all sides will be set same. If you want each side different supply four numbers separated with comas, without spaces.
 -o | **Overwrite:** Overwrite original images. If both _-n_ and _-o_ are specified by accident, _-o_ is ignored.<br>
 -n | **No overwrite:** Do not overwrite original images. Directory name for processed images must be supplied.<br>
--p | **Resolution:** Change resolution to specified value.<br>
+-p | **Resolution:** Change resolution to specified ppi value.<br>
 -a | **Prefix:** Add prefix to filename.<sup>_WARN_</sup><br>
 -A | **Prefix separator** Separator between _prefix_ and _filename_.<sup>_WARN_</sup><br>
 -z | **Suffix:** Add suffix to filename.<sup>_WARN_</sup><br>
