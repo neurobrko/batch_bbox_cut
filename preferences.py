@@ -13,15 +13,14 @@ processedDir = "processed"
 # *-* Specify bounding box
 boundingBox = [0, 0, 0, 0]
 
-# File naming
+# *-* File naming
 prefix = ""
 pfxSeparator = "_"
 suffix = ""
 sfxSeparator = "_"
 
+# *-* Change resolution. 0 means no change
+ppi = 0
 
 # Resize longer side to specified dimension. 0 means no resizing
 # resize = 0
-
-# Change resolution. 0 means no change
-# dpi = 0

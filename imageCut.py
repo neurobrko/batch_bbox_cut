@@ -32,6 +32,9 @@ ap.add_argument(
     metavar="DIRNAME",
 )
 ap.add_argument(
+    "-p", "--ppi", help="Change resolution to specified dpi.", metavar="NUM"
+)
+ap.add_argument(
     "-a",
     "--prefix",
     help="Specified prefix will be added to processed filename if overwrite is not applied.",
@@ -56,10 +59,7 @@ ap.add_argument(
     metavar="CHARS",
 )
 # ap.add_argument(
-#     "-r", "--dpi", help="Change resolution to specified dpi.", metavar="NUM"
-# )
-# ap.add_argument(
-#     "-s",
+#     "-r",
 #     "--resize",
 #     help="Resize longer side to specified size in pixels.",
 #     metavar="NUM",
@@ -195,6 +195,11 @@ else:
     if not suffix:
         sfxSeparator = ""
 
+    # check if resolution was specified in CLI
+    if args["ppi"]:
+        ppi = int(args["ppi"])
+
+
 with alive_bar(len(imgList), bar="classic", spinner="dots") as bar:
     for i, imgPath in enumerate(imgList):
         with Image.open(imgPath) as img:
@@ -213,7 +218,10 @@ with alive_bar(len(imgList), bar="classic", spinner="dots") as bar:
             )
             img = img.crop(imgCustomBBox)
             saveFile = os.path.join(destPath, imgBase)
-            img.save(saveFile)
+            if ppi:
+                img.save(saveFile, dpi=(ppi, ppi))
+            else:
+                img.save(saveFile)
             bar()
 
 if len(imgList) < 2:
