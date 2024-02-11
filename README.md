@@ -5,11 +5,12 @@
 ## Description
 Script for cutting out white bounding box of images in specified folder with simple progress bar indicating running of the script.
 Few settings can be tweaked either by editing _preferences.py_ or with command line arguments.
-For now (1.0.08) those are: custom bounding box, overwriting (or not) original files and toggle welcome message.
+## Version
+1.0.09
 
 ## Usage
 CLI arguments overrides _preferences.py_ therefore it is recommended to use _preferences.py_ for default settings and CLI arguments for per use tweaks.  
-File _preferences.py_ contains all settings, only some can be changed with CLI arguments.
+File _preferences.py_ contains all the settings, all of them can be changed with CLI arguments except for processed file types.
 
 ### preferences.py
 ***extList*** Contains file extensions to be processed. Currently tested only with _jpg_ and _jpeg_. Specify extensions in lowercase. Also uppercase extensions will be processed.<br>
@@ -21,7 +22,8 @@ File _preferences.py_ contains all settings, only some can be changed with CLI a
 ***pfxSeparator*** Separator between prefix and filename. If prefix is not specified, separator is ignored.<sup>_WARN_</sup><br>
 ***suffix*** Add suffix to new filename.<sup>_WARN_</sup><br>
 ***sfxSeparator*** Separator between filename and suffix. If suffix is not specified, separator is ignored.<sup>_WARN_</sup><br>
-***ppi*** Change resolution of processed image to specified value. Will not change if set to 0.
+***ppi*** Change resolution of processed image to specified value. Will not change if set to 0.<br>
+***size*** Resize image with longer side to specified dimension. if custom bounding box is specified, it will be added after resizing, therefore the final dimension will be as specified.
 
 <sup>***WARN***</sup> _Prefix, suffix and separators are ignored if overwrite is active! Please use valid characters in filenames, there is no filename validation implemented yet!_
 
@@ -32,6 +34,7 @@ File _preferences.py_ contains all settings, only some can be changed with CLI a
 -o | **Overwrite:** Overwrite original images. If both _-n_ and _-o_ are specified by accident, _-o_ is ignored.<br>
 -n | **No overwrite:** Do not overwrite original images. Directory name for processed images must be supplied.<br>
 -p | **Resolution:** Change resolution to specified ppi value.<br>
+-s | **Resize** Resize longer side of the image to specified size. Custom bounding box is applied after resizing.<br>
 -a | **Prefix:** Add prefix to filename.<sup>_WARN_</sup><br>
 -A | **Prefix separator** Separator between _prefix_ and _filename_.<sup>_WARN_</sup><br>
 -z | **Suffix:** Add suffix to filename.<sup>_WARN_</sup><br>
@@ -41,8 +44,8 @@ File _preferences.py_ contains all settings, only some can be changed with CLI a
 <sup>***WARN***</sup> _Prefix, suffix and separators are ignored if overwrite is active! Please use valid characters in filenames, there is no filename validation implemented yet!_
 
 ## TO DO
-- [ ] resize image with longer edge according to specified size
+- [ ] add option not to crop bounding box, so the script can be used for resize/change of ppi/adding prefix & suffix only
 - [ ] print some useful report on exit
-- [ ] add validation to resolution
+- [ ] add validation to resolution and resize
 - [ ] add some validation to prefix, suffix and separators
 - [ ] internalization (slovak and english)

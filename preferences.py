@@ -6,7 +6,7 @@ extList = ["jpg", "jpeg"]
 # *-* Display Welcome message
 welcomeMsg = False
 
-# Overwrite original picture or put it in processedDir directory
+# *-* Overwrite original picture or put it in processedDir directory
 overwrite = False
 processedDir = "processed"
 
@@ -22,5 +22,5 @@ sfxSeparator = "_"
 # *-* Change resolution. 0 means no change
 ppi = 0
 
-# Resize longer side to specified dimension. 0 means no resizing
-# resize = 0
+# *-* Resize longer side to specified dimension. 0 means no resizing
+size = 0

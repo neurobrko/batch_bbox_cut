@@ -35,6 +35,12 @@ ap.add_argument(
     "-p", "--ppi", help="Change resolution to specified dpi.", metavar="NUM"
 )
 ap.add_argument(
+    "-s",
+    "--size",
+    help="Resize longer side to specified size in pixels.",
+    metavar="NUM",
+)
+ap.add_argument(
     "-a",
     "--prefix",
     help="Specified prefix will be added to processed filename if overwrite is not applied.",
@@ -58,12 +64,6 @@ ap.add_argument(
     help="Separator between filename and suffix.",
     metavar="CHARS",
 )
-# ap.add_argument(
-#     "-r",
-#     "--resize",
-#     help="Resize longer side to specified size in pixels.",
-#     metavar="NUM",
-# )
 ap.add_argument(
     "-w",
     "--welcome",
@@ -195,10 +195,19 @@ else:
     if not suffix:
         sfxSeparator = ""
 
-    # check if resolution was specified in CLI
-    if args["ppi"]:
-        ppi = int(args["ppi"])
+# check if resolution was specified in CLI
+if args["ppi"]:
+    ppi = int(args["ppi"])
 
+# check if resize was set in CLI
+if args["size"]:
+    size = int(args["size"])
+# if resize specified, create tuple for thumbnail()
+if size:
+    imgSize = (
+        size - customBoundingBox[0] - customBoundingBox[2],
+        size - customBoundingBox[1] - customBoundingBox[3],
+    )
 
 with alive_bar(len(imgList), bar="classic", spinner="dots") as bar:
     for i, imgPath in enumerate(imgList):
@@ -208,15 +217,26 @@ with alive_bar(len(imgList), bar="classic", spinner="dots") as bar:
             imgBase = (
                 prefix + pfxSeparator + imgFilename + sfxSeparator + suffix + imgExt
             )
-            # calculate custom bounding box
             imgCropBBox = ImageOps.invert(img).getbbox()
+
+            # crop bounding box
+            img = img.crop(imgCropBBox)
+
+            # change size if defined
+            if size:
+                img.thumbnail(imgSize, resample=Image.LANCZOS, reducing_gap=2.0)
+
+            # apply custom bounding box
             imgCustomBBox = (
-                imgCropBBox[0] - customBoundingBox[0],
-                imgCropBBox[1] - customBoundingBox[1],
-                imgCropBBox[2] + customBoundingBox[2],
-                imgCropBBox[3] + customBoundingBox[3],
+                0 - customBoundingBox[0],
+                0 - customBoundingBox[1],
+                img.size[0] + customBoundingBox[2],
+                img.size[1] + customBoundingBox[3],
             )
-            img = img.crop(imgCustomBBox)
+            img = ImageOps.invert(img).crop(imgCustomBBox)
+            img = ImageOps.invert(img)
+
+            # save image with changed ppi if specified
             saveFile = os.path.join(destPath, imgBase)
             if ppi:
                 img.save(saveFile, dpi=(ppi, ppi))
