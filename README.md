@@ -6,7 +6,7 @@
 Script for cutting out white bounding box of images in specified folder with simple progress bar indicating running of the script.
 Few settings can be tweaked either by editing _preferences.py_ or with command line arguments.
 ## Version
-1.0.09
+1.0.10
 
 ## Usage
 CLI arguments overrides _preferences.py_ therefore it is recommended to use _preferences.py_ for default settings and CLI arguments for per use tweaks.  

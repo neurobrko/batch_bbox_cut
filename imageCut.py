@@ -1,4 +1,4 @@
-#!.venv/bin/python3
+#!/usr/bin/env python
 
 from preferences import *
 from alive_progress import alive_bar
@@ -16,7 +16,8 @@ ap.add_argument(
 ap.add_argument(
     "-b",
     "--bbox",
-    help="Bounding box size. Single number to specify all, or four numbers (separated with comas without spaces - left,top,right,bottom) to specify each. ",
+    help="Bounding box size. Single number to specify all, or four numbers (separated with comas \
+    without spaces - left,top,right,bottom) to specify each. ",
     metavar="0 | 0,0,0,0",
 )
 ap.add_argument(
@@ -28,7 +29,8 @@ ap.add_argument(
 ap.add_argument(
     "-n",
     "--nooverwrite",
-    help="Do not overwrite original files and save copies to specified directory in original directory. Will be created if needed.",
+    help="Do not overwrite original files and save copies to specified directory in original directory. \
+    Will be created if needed.",
     metavar="DIRNAME",
 )
 ap.add_argument(
@@ -123,18 +125,18 @@ def user_input():
     print("Choose path to directory. If leaved empty, current dir will be used.")
     print("")
     # if directory was not specified with argument, choose it with user input
-    processDir = input("Directory path: ")
-    # check if dirpath is correct
-    if processDir == "":
-        processDir = Path.cwd()
+    processdir = input("Directory path: ")
+    # check if directory path is correct
+    if processdir == "":
+        processdir = Path.cwd()
     else:
-        if not Path(processDir).is_dir():
+        if not Path(processdir).is_dir():
             print("Bad directory path!")
             print(
                 "Double check your input or try running the script from its original directory."
             )
             quit()
-    return processDir
+    return processdir
 
 
 # check if path is valid
@@ -145,14 +147,14 @@ if args["dir"]:
         processDir = os.path.join(Path.cwd(), args["dir"])
     else:
         print("Bad directory path!")
-        print("Try specifing directory manually.")
+        print("Try specifying directory manually.")
         processDir = user_input()
 else:
     processDir = user_input()
 
 # check overwriting of original images
 # reset overwrite and processedDir variables if specified from CLI
-# Check -o first and -n after that. Thus way if both are specified, nooverwrite has priority
+# Check -o first and -n after that. Thus, way if both are specified, nooverwrite has priority
 if args["overwrite"]:
     overwrite = True
 if args["nooverwrite"]:
@@ -171,7 +173,7 @@ for i in range(len(extList)):
     extList[i] = "*." + extList[i]
     extList.append(extList[i].upper())  # add uppercase extensions
 
-# itterate over process folder
+# iterate over process folder
 imgList = []
 for img in extList:
     imgList.extend(glob.glob(os.path.join(processDir, img)))
@@ -189,7 +191,7 @@ else:
         sfxSeparator = args["sfxseparator"]
     if args["suffix"]:
         suffix = args["suffix"]
-    # remove prefix and/or suffix separators, if prefix and/or suffix is not definied
+    # remove prefix and/or suffix separators, if prefix and/or suffix is not defined
     if not prefix:
         pfxSeparator = ""
     if not suffix:
