@@ -3,7 +3,7 @@
 from preferences import *
 from alive_progress import alive_bar
 from pathlib import Path
-from PIL import Image, ImageOps
+from PIL import Image, ImageOps, ImageEnhance
 import os
 import argparse
 import glob
@@ -16,9 +16,22 @@ ap.add_argument(
 ap.add_argument(
     "-b",
     "--bbox",
-    help="Bounding box size. Single number to specify all, or four numbers (separated with comas \
-    without spaces - left,top,right,bottom) to specify each. ",
+    help="Bounding box size. Single number to specify all, or four numbers (separated with comas " 
+         "without spaces - left,top,right,bottom) to specify each.",
     metavar="0 | 0,0,0,0",
+)
+ap.add_argument(
+    "-c",
+    "--precut",
+    help="Cut image border before processing to get rid of artifacts in corners or sides of image. Value in percents.",
+    metavar="INT",
+)
+ap.add_argument(
+    "-e",
+    "--enhance",
+    help="Enhance brightness while processing to override gray background. Final image is saved without enhancement."
+         "Value of 1.0 and greater. 0 for no enhancement.",
+    metavar="FLOAT",
 )
 ap.add_argument(
     "-o",
@@ -29,18 +42,18 @@ ap.add_argument(
 ap.add_argument(
     "-n",
     "--nooverwrite",
-    help="Do not overwrite original files and save copies to specified directory in original directory. \
-    Will be created if needed.",
+    help="Do not overwrite original files and save copies to specified directory in original directory. " 
+         "Will be created if needed.",
     metavar="DIRNAME",
 )
 ap.add_argument(
-    "-p", "--ppi", help="Change resolution to specified dpi.", metavar="NUM"
+    "-p", "--ppi", help="Change resolution to specified dpi.", metavar="INT"
 )
 ap.add_argument(
     "-s",
     "--size",
     help="Resize longer side to specified size in pixels.",
-    metavar="NUM",
+    metavar="INT",
 )
 ap.add_argument(
     "-a",
@@ -58,7 +71,7 @@ ap.add_argument(
     "-z",
     "--suffix",
     help="Specified suffix will be added to processed filename if overwrite is not applied.",
-    metavar="PFX",
+    metavar="SFX",
 )
 ap.add_argument(
     "-Z",
@@ -119,6 +132,27 @@ except Exception as err:
     print("Something went wrong! (bbox from preferences / " + type(err).__name__ + ")")
     quit()
 
+# check if precut was specified in CLI
+if args["precut"]:
+    try:
+        precut = int(args["precut"])
+    except ValueError:
+        print("Precut argument must be integer!")
+        quit()
+    except Exception as err:
+        print("Something went wrong! (precut from cli / " + type(err).__name__ + ")")
+        quit()
+
+# check if engancement was specified in CLI
+if args["enhance"]:
+    try:
+        brightness = float(args["enhance"])
+    except ValueError:
+        print("Brightness enhancement must be a float.")
+        quit()
+    except Exception as err:
+        print("Something went wrong! (precut from cli / " + type(err).__name__ + ")")
+        quit()
 
 # process directory path user input
 def user_input():
@@ -219,7 +253,27 @@ with alive_bar(len(imgList), bar="classic", spinner="dots") as bar:
             imgBase = (
                 prefix + pfxSeparator + imgFilename + sfxSeparator + suffix + imgExt
             )
-            imgCropBBox = ImageOps.invert(img).getbbox()
+            # precut image if there is some artefacts on the sides or in the corners
+            if precut:
+                imgWidth, imgHeight = img.size
+                precutBBox = (imgWidth/100*precut, imgHeight/100*precut, imgWidth - imgWidth/100*precut, imgHeight - imgHeight/100*precut)
+                img = img.crop(precutBBox)
+
+            # enhance image brightness to get rid of grey background
+            if brightness:
+                enhancer = ImageEnhance.Brightness(img)
+                imgEnhanced = enhancer.enhance(brightness)
+
+            # invert image to correctly calculate cropbox
+            imgCropBBox = ImageOps.invert(imgEnhanced).getbbox()
+
+            # add custom bounding box
+            imgCropBBox = (
+                imgCropBBox[0] - customBoundingBox[0],
+                imgCropBBox[1] - customBoundingBox[1],
+                imgCropBBox[2] + customBoundingBox[2],
+                imgCropBBox[3] + customBoundingBox[3]
+            )
 
             # crop bounding box
             img = img.crop(imgCropBBox)
@@ -227,16 +281,6 @@ with alive_bar(len(imgList), bar="classic", spinner="dots") as bar:
             # change size if defined
             if size:
                 img.thumbnail(imgSize, resample=Image.LANCZOS, reducing_gap=2.0)
-
-            # apply custom bounding box
-            imgCustomBBox = (
-                0 - customBoundingBox[0],
-                0 - customBoundingBox[1],
-                img.size[0] + customBoundingBox[2],
-                img.size[1] + customBoundingBox[3],
-            )
-            img = ImageOps.invert(img).crop(imgCustomBBox)
-            img = ImageOps.invert(img)
 
             # save image with changed ppi if specified
             saveFile = os.path.join(destPath, imgBase)
