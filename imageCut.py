@@ -140,7 +140,10 @@ if args["precut"]:
         print("Precut argument must be integer!")
         quit()
     except Exception as err:
-        print("Something went wrong! (precut from cli / " + type(err).__name__ + ")")
+        print("Something went wrong! (Precut from cli / " + type(err).__name__ + ")")
+        quit()
+    if not 0 <= precut <= 99:
+        print("Precut must be between 1 and 99!")
         quit()
 
 # check if engancement was specified in CLI
@@ -151,7 +154,10 @@ if args["enhance"]:
         print("Brightness enhancement must be a float.")
         quit()
     except Exception as err:
-        print("Something went wrong! (precut from cli / " + type(err).__name__ + ")")
+        print("Something went wrong! (Brightness from cli / " + type(err).__name__ + ")")
+        quit()
+    if brightness < 0:
+        print("Brightness must be greater then 0.0!")
         quit()
 
 # process directory path user input
@@ -263,6 +269,8 @@ with alive_bar(len(imgList), bar="classic", spinner="dots") as bar:
             if brightness:
                 enhancer = ImageEnhance.Brightness(img)
                 imgEnhanced = enhancer.enhance(brightness)
+            else:
+                imgEnhanced = img
 
             # invert image to correctly calculate cropbox
             imgCropBBox = ImageOps.invert(imgEnhanced).getbbox()
