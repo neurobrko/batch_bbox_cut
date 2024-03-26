@@ -375,6 +375,7 @@ with alive_bar(len(imgList), bar="classic", spinner="dots") as bar:
                 if resize["dimension"] != 0:
                     img.thumbnail(imgResizeDimensions, resample=Image.LANCZOS, reducing_gap=2.0)
             elif customBoundingBox != [0, 0, 0, 0]:
+                # volaco tu kurevsky nefunguje. treba zohladnit, ci je to sirka alebo vyska???
                 imgCrop = [imgCropBBox[0] - customBoundingBox[0] / resizeFactor,
                            imgCropBBox[1] - customBoundingBox[1] / resizeFactor,
                            imgCropBBox[2] + customBoundingBox[2] / resizeFactor,

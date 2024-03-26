@@ -63,4 +63,4 @@ bounding box added to specified dimensions. **PROBLEM:** Non white background
 - [ ] print some useful report on exit
 - [ ] add some validation to prefix, suffix and separators regarding invalid characters
 - [ ] GUI
-- [ ] internalization (slovak and english)
+- [ ] internalization (slovak and english) 
