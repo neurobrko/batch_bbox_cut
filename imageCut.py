@@ -9,6 +9,33 @@ import os
 import argparse
 import glob
 
+# FUNCTIONS
+def no_bbox_crop(image, cropBox, imgResizeDimensions, resize):
+    imgCrop = cropBox
+    # crop image
+    image = image.crop(imgCrop)
+    # resize if defined
+    if resize["dimension"] != 0:
+        image.thumbnail(imgResizeDimensions, resample=Image.LANCZOS, reducing_gap=2.0)
+    return image
+
+def get_resize_options(resize, customBoundingBox, imgTmpSize):
+    if resize["dimension"] != 0:
+        match resize["side"]:
+            case "x":
+                imgNewWidth = resize["dimension"] - customBoundingBox[0] - customBoundingBox[2]
+                resizeFactor = imgNewWidth / imgTmpSize[0]
+                imgNewHeight = ceil(imgTmpSize[1] * resizeFactor)
+            case "y":
+                imgNewHeight = resize["dimension"] - customBoundingBox[1] - customBoundingBox[3]
+                resizeFactor = imgNewHeight / imgTmpSize[1]
+                imgNewWidth = ceil(imgTmpSize[0] * resizeFactor)
+        imgResizeDimensions = (imgNewWidth, imgNewHeight)
+    else:
+        resizeFactor = 1
+
+    return resizeFactor, imgResizeDimensions
+
 # Create argument parser
 ap = argparse.ArgumentParser()
 ap.add_argument(
@@ -327,6 +354,10 @@ if args["resize"]:
         quit()
     resize = {"side": side, "dimension": dimension}
 
+if portraitSize != [0, 0] and landscapeSize != [0, 0]:
+    print("Portrait and landscape options are in progress, sorry...")
+    quit()
+
 with alive_bar(len(imgList), bar="classic", spinner="dots") as bar:
     for i, imgPath in enumerate(imgList):
         with Image.open(imgPath) as img:
@@ -357,28 +388,26 @@ with alive_bar(len(imgList), bar="classic", spinner="dots") as bar:
             imgTmpSize = imgTmp.size
 
             # get resize factor
-            if resize["dimension"] != 0:
-                match resize["side"]:
-                    case "x":
-                        imgNewWidth = resize["dimension"] - customBoundingBox[0] - customBoundingBox[2]
-                        resizeFactor = imgNewWidth / imgTmpSize[0]
-                        imgNewHeight = ceil(imgTmpSize[1] * resizeFactor)
-                    case "y":
-                        imgNewHeight = resize["dimension"] - customBoundingBox[1] - customBoundingBox[3]
-                        resizeFactor = imgNewHeight / imgTmpSize[1]
-                        imgNewWidth = ceil(imgTmpSize[0] * resizeFactor)
-                imgResizeDimensions = (imgNewWidth, imgNewHeight)
-            else:
-                resizeFactor = 1
+            resizeFactor, imgResizeDimensions = get_resize_options(resize, customBoundingBox, imgTmpSize)
 
             # set bounding box, crop and resize
+            # in order of priority
+            # 1. noBoundingBox has priority over any other bounding box preferences
             if noBoundingBox:
-                imgCrop = imgCropBBox
-                # crop image
-                img = img.crop(imgCrop)
-                # resize if defined
-                if resize["dimension"] != 0:
-                    img.thumbnail(imgResizeDimensions, resample=Image.LANCZOS, reducing_gap=2.0)
+                img = no_bbox_crop(img, imgCropBBox, imgResizeDimensions, resize)
+            # 2. landscapeSize size or portraitSize is specified
+            elif portraitSize != [0, 0] and landscapeSize != [0, 0]:
+                # cropped image is landscape
+                if imgTmpSize[0] > imgTmpSize[1]:
+                    if resize['dimension'] != 0:
+                        pass
+                # cropped image is portrait
+                elif imgTmpSize[1] > imgTmpSize[0]:
+                    pass
+                # by chance, cropped image is square
+                else:
+                    pass
+            # 3. non-zero customBoundingBox is specified
             elif customBoundingBox != [0, 0, 0, 0]:
                 imgCrop = [floor(imgCropBBox[0] - customBoundingBox[0] / resizeFactor),
                            floor(imgCropBBox[1] - customBoundingBox[1] / resizeFactor),
@@ -386,21 +415,27 @@ with alive_bar(len(imgList), bar="classic", spinner="dots") as bar:
                            ceil(imgCropBBox[3] + customBoundingBox[3] / resizeFactor)
                 ]
                 # crop image
-                img = img.crop(imgCrop)
+                # img = img.crop(imgCrop)
+
+                # crop inverted image => if original image has pure white background, bounding box is also white
+                # if original image has non-white background (e.g. light grey) and custom bounding box is grater
+                # than original image, the overlapping custom bounding box will be pure white!
+                img = ImageOps.invert(img).crop(imgCrop)
+                img = ImageOps.invert(img)
                 # resize if defined
                 if resize["dimension"] != 0:
                     imgFinalDimensions = (
                         imgResizeDimensions[0] + customBoundingBox[0] + customBoundingBox[2],
                         imgResizeDimensions[1] + customBoundingBox[1] + customBoundingBox[3]
                     )
-
                     img.thumbnail(imgFinalDimensions, resample=Image.LANCZOS, reducing_gap=2.0)
+            # 4. customBoundingBox is specified
+            elif customBoundingBox == [0, 0, 0, 0]:
+                img = no_bbox_crop(img, imgCropBBox, imgResizeDimensions, resize)
+            # 5. some other condition not anticipated yet :)
             else:
-                print("sth else")
-
-
-
-
+                print("Something went terribly wrong with bounding box!")
+                quit()
 
             # save image with changed ppi if specified
             saveFile = os.path.join(destPath, imgBase)

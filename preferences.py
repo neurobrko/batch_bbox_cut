@@ -14,6 +14,7 @@ processedDir = "processed"
 boundingBox = [0, 0, 0, 0]
 
 # *-* Specify final image size according to format of the cropped image
+# it is ignored, iif set to [0, 0]
 portraitSize = [980, 750]
 landscapeSize = [600, 750]
 
