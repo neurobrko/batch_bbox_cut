@@ -396,7 +396,7 @@ with alive_bar(len(imgList), bar="classic", spinner="dots") as bar:
 
                     img.thumbnail(imgFinalDimensions, resample=Image.LANCZOS, reducing_gap=2.0)
             else:
-                print("sth")
+                print("sth else")
 
 
 
