@@ -121,8 +121,16 @@ if args["welcome"] or welcomeMsg:
     print("***")
     print("")
 
+# check if no bounding box was specified in CLI
+if args["nobbox"]:
+    noBoundingBox = True
+
+# reset custom bounding box, if noBoundingBox == True
+if noBoundingBox:
+    customBoundingBox = [0, 0, 0, 0]
+
 # Check if bounding box was specified in CLI, if not, use from preferences.py
-if args["bbox"]:
+if args["bbox"] and not noBoundingBox:
     try:
         customBoundingBox = []
         cbbox = int(args["bbox"])
@@ -185,10 +193,6 @@ if args["portrait"]:
     except Exception as err:
         print("Something went wrong! (portraitSize from preferences / " + type(err).__name__ + ")")
         quit()
-
-# check if no bounding box was specified in CLI
-if args["nobbox"]:
-    noBoundingBox = True
 
 # check if precut was specified in CLI
 if args["precut"]:
@@ -351,18 +355,22 @@ with alive_bar(len(imgList), bar="classic", spinner="dots") as bar:
             imgTmp = img.crop(imgCropBBox)
             # get dimensions of cropped image
             imgTmpSize = imgTmp.size
+            print(imgTmpSize)
 
             # get resize factor
             if resize["dimension"] != 0:
                 match resize["side"]:
                     case "x":
-                        resizeFactor = resize["dimension"] / imgTmpSize[0]
-                        imgNewHeight = imgTmpSize[1] * resizeFactor
-                        imgResizeDimensions = (resize["dimension"], imgNewHeight)
+                        imgNewWidth = resize["dimension"] - customBoundingBox[0] - customBoundingBox[2]
+                        resizeFactor = imgNewWidth / imgTmpSize[0]
+                        imgNewHeight = ceil(imgTmpSize[1] * resizeFactor)
                     case "y":
-                        resizeFactor = resize["dimension"] / imgTmpSize[1]
-                        imgNewWidth = imgTmpSize[0] * resizeFactor
-                        imgResizeDimensions = (imgNewWidth, resize["dimension"])
+                        imgNewHeight = resize["dimension"] - customBoundingBox[1] - customBoundingBox[3]
+                        resizeFactor = imgNewHeight / imgTmpSize[1]
+                        imgNewWidth = ceil(imgTmpSize[0] * resizeFactor)
+                imgResizeDimensions = (imgNewWidth, imgNewHeight)
+                print(resizeFactor)
+                print(imgResizeDimensions)
             else:
                 resizeFactor = 1
 
@@ -376,18 +384,18 @@ with alive_bar(len(imgList), bar="classic", spinner="dots") as bar:
                     img.thumbnail(imgResizeDimensions, resample=Image.LANCZOS, reducing_gap=2.0)
             elif customBoundingBox != [0, 0, 0, 0]:
                 # volaco tu kurevsky nefunguje. treba zohladnit, ci je to sirka alebo vyska???
-                imgCrop = [imgCropBBox[0] - customBoundingBox[0] / resizeFactor,
-                           imgCropBBox[1] - customBoundingBox[1] / resizeFactor,
-                           imgCropBBox[2] + customBoundingBox[2] / resizeFactor,
-                           imgCropBBox[3] + customBoundingBox[3] / resizeFactor
+                imgCrop = [floor(imgCropBBox[0] - customBoundingBox[0] / resizeFactor),
+                           floor(imgCropBBox[1] - customBoundingBox[1] / resizeFactor),
+                           ceil(imgCropBBox[2] + customBoundingBox[2] / resizeFactor),
+                           ceil(imgCropBBox[3] + customBoundingBox[3] / resizeFactor)
                 ]
                 # crop image
                 img = img.crop(imgCrop)
                 # resize if defined
                 if resize["dimension"] != 0:
                     imgFinalDimensions = (
-                        ceil(imgResizeDimensions[0]),
-                        ceil(imgResizeDimensions[1])
+                        imgResizeDimensions[0] + customBoundingBox[0] + customBoundingBox[2],
+                        imgResizeDimensions[1] + customBoundingBox[1] + customBoundingBox[3]
                     )
 
                     img.thumbnail(imgFinalDimensions, resample=Image.LANCZOS, reducing_gap=2.0)
