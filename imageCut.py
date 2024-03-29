@@ -9,6 +9,7 @@ import os
 import argparse
 import glob
 
+
 # FUNCTIONS
 def no_bbox_crop(image, cropBox, imgResizeDimensions, resize):
     imgCrop = cropBox
@@ -19,22 +20,29 @@ def no_bbox_crop(image, cropBox, imgResizeDimensions, resize):
         image.thumbnail(imgResizeDimensions, resample=Image.LANCZOS, reducing_gap=2.0)
     return image
 
+
 def get_resize_options(resize, customBoundingBox, imgTmpSize):
     if resize["dimension"] != 0:
         match resize["side"]:
             case "x":
-                imgNewWidth = resize["dimension"] - customBoundingBox[0] - customBoundingBox[2]
+                imgNewWidth = (
+                    resize["dimension"] - customBoundingBox[0] - customBoundingBox[2]
+                )
                 resizeFactor = imgNewWidth / imgTmpSize[0]
                 imgNewHeight = ceil(imgTmpSize[1] * resizeFactor)
             case "y":
-                imgNewHeight = resize["dimension"] - customBoundingBox[1] - customBoundingBox[3]
+                imgNewHeight = (
+                    resize["dimension"] - customBoundingBox[1] - customBoundingBox[3]
+                )
                 resizeFactor = imgNewHeight / imgTmpSize[1]
                 imgNewWidth = ceil(imgTmpSize[0] * resizeFactor)
         imgResizeDimensions = (imgNewWidth, imgNewHeight)
     else:
         resizeFactor = 1
+        imgResizeDimensions = imgTmpSize
 
     return resizeFactor, imgResizeDimensions
+
 
 # Create argument parser
 ap = argparse.ArgumentParser()
@@ -44,22 +52,22 @@ ap.add_argument(
 ap.add_argument(
     "-b",
     "--bbox",
-    help="Bounding box size. Single number to specify all, or four numbers (separated with comas " 
-         "without spaces - left,top,right,bottom) to specify each.",
+    help="Bounding box size. Single number to specify all, or four numbers (separated with comas "
+    "without spaces - left,top,right,bottom) to specify each.",
     metavar="0 | 0,0,0,0",
 )
 ap.add_argument(
     "-x",
     "--landscape",
     help="Final size of the image if cropped image is landscape. It is ignored if -b is nonzero. "
-         "Specified as two integers, separated by coma, no spaces",
+    "Specified as two integers, separated by coma, no spaces",
     metavar="INT,INT",
 )
 ap.add_argument(
     "-y",
     "--portrait",
     help="Final size of the image if cropped image is portrait. It is ignored if -b is nonzero. "
-         "Specified as two integers, separated by coma, no spaces",
+    "Specified as two integers, separated by coma, no spaces",
     metavar="INT,INT",
 )
 ap.add_argument(
@@ -78,7 +86,7 @@ ap.add_argument(
     "-e",
     "--enhance",
     help="Enhance brightness while processing to override gray background. Final image is saved without enhancement."
-         "Value of 1.0 and greater. 0 for no enhancement.",
+    "Value of 1.0 and greater. 0 for no enhancement.",
     metavar="FLOAT",
 )
 ap.add_argument(
@@ -90,8 +98,8 @@ ap.add_argument(
 ap.add_argument(
     "-n",
     "--nooverwrite",
-    help="Do not overwrite original files and save copies to specified directory in original directory. " 
-         "Will be created if needed.",
+    help="Do not overwrite original files and save copies to specified directory in original directory. "
+    "Will be created if needed.",
     metavar="DIRNAME",
 )
 ap.add_argument(
@@ -100,8 +108,8 @@ ap.add_argument(
 ap.add_argument(
     "-r",
     "--resize",
-    help="Resize specified side to specified size in pixels. Side is \"x\" or \"y\", size is integer. "
-         "Separated by coma, no spaces.",
+    help='Resize specified side to specified size in pixels. Side is "x" or "y", size is integer. '
+    "Separated by coma, no spaces.",
     metavar="(x|y,INT)",
 )
 ap.add_argument(
@@ -156,6 +164,57 @@ if args["nobbox"]:
 if noBoundingBox:
     customBoundingBox = [0, 0, 0, 0]
 
+# check if landscape size was specified in CLI
+if args["landscape"]:
+    landscapeSize = args["landscape"].split(",")
+    if len(landscapeSize) != 2:
+        print("Landscape size must be specified as two integers.")
+        quit()
+    try:
+        landscapeSize = [int(i) for i in landscapeSize]
+    except ValueError:
+        print("Landscape size must be specified as integers.")
+        quit()
+    except Exception as err:
+        print(
+            "Something went wrong! (landscapeSize from preferences / "
+            + type(err).__name__
+            + ")"
+        )
+        quit()
+    if landscapeSize[0] == 0 ^ landscapeSize[1] == 0:
+        print("Both landscape dimensions must be greater than 0!")
+        quit()
+
+# check if portrait size was specified in CLI
+if args["portrait"]:
+    portraitSize = args["portrait"].split(",")
+    if len(portraitSize) != 2:
+        print("Portrait size must be specified as two integers.")
+        quit()
+    try:
+        portraitSize = [int(i) for i in portraitSize]
+    except ValueError:
+        print("Portrait size must be specified as integers.")
+        quit()
+    except Exception as err:
+        print(
+            "Something went wrong! (portraitSize from preferences / "
+            + type(err).__name__
+            + ")"
+        )
+        quit()
+    if portraitSize[0] == 0 ^ portraitSize[1] == 0:
+        print("Both portrait dimensions must be greater than 0!")
+        quit()
+
+# if both landscapeSize and portraitSize are correctly definied
+if landscapeSize != [0, 0] and portraitSize != [0, 0]:
+    # reset customBoundingBox
+    customBoundingBox = [0, 0, 0, 0]
+    # reset args["bbox"], so the script doesn't have to check it
+    args["bbox"] = None
+
 # Check if bounding box was specified in CLI, if not, use from preferences.py
 if args["bbox"] and not noBoundingBox:
     try:
@@ -189,38 +248,6 @@ except Exception as err:
     print("Something went wrong! (bbox from preferences / " + type(err).__name__ + ")")
     quit()
 
-# check if landscape size was specified in CLI
-if args["landscape"]:
-    landscapeSize = args["landscape"].split(",")
-    if len(landscapeSize) != 2:
-        print("Landscape size must be specified as two integers.")
-        quit()
-    try:
-        landscapeSize[0] = int(landscapeSize[0])
-        landscapeSize[1] = int(landscapeSize[1])
-    except ValueError:
-        print("Landscape size must be specified as integers.")
-        quit()
-    except Exception as err:
-        print("Something went wrong! (landscapeSize from preferences / " + type(err).__name__ + ")")
-        quit()
-
-# check if portrait size was specified in CLI
-if args["portrait"]:
-    portraitSize = args["portrait"].split(",")
-    if len(portraitSize) != 2:
-        print("Portrait size must be specified as two integers.")
-        quit()
-    try:
-        portraitSize[0] = int(portraitSize[0])
-        portraitSize[1] = int(portraitSize[1])
-    except ValueError:
-        print("Portrait size must be specified as integers.")
-        quit()
-    except Exception as err:
-        print("Something went wrong! (portraitSize from preferences / " + type(err).__name__ + ")")
-        quit()
-
 # check if precut was specified in CLI
 if args["precut"]:
     try:
@@ -243,11 +270,14 @@ if args["enhance"]:
         print("Brightness enhancement must be a float.")
         quit()
     except Exception as err:
-        print("Something went wrong! (Brightness from cli / " + type(err).__name__ + ")")
+        print(
+            "Something went wrong! (Brightness from cli / " + type(err).__name__ + ")"
+        )
         quit()
     if brightness < 0:
         print("Brightness must be greater then 0.0!")
         quit()
+
 
 # process directory path user input
 def user_input():
@@ -342,7 +372,7 @@ if args["ppi"]:
 if args["resize"]:
     side, dimension = args["resize"].split(",")
     if not side in ["x", "y"]:
-        print("Side must be specified as \"x\" or \"y\"!")
+        print('Side must be specified as "x" or "y"!')
         quit()
     try:
         dimension = int(dimension)
@@ -355,8 +385,32 @@ if args["resize"]:
     resize = {"side": side, "dimension": dimension}
 
 if portraitSize != [0, 0] and landscapeSize != [0, 0]:
-    print("Portrait and landscape options are in progress, sorry...")
-    quit()
+    if resize["dimension"] != 0:
+        resizeErrorCount = 0
+        if resize["side"] == "x":
+            if landscapeSize[0] < resize["dimension"]:
+                print(
+                    "Resize dimension (x) must be smaller or equal to landscape width!"
+                )
+                resizeErrorCount += 1
+            if portraitSize[0] < resize["dimension"]:
+                print(
+                    "Resize dimension (x) must be smaller or equal to portrait width!"
+                )
+                resizeErrorCount += 1
+        if resize["side"] == "y":
+            if landscapeSize[1] < resize["dimension"]:
+                print(
+                    "Resize dimension (y) must be smaller or equal to landscape height!"
+                )
+                resizeErrorCount += 1
+            if portraitSize[1] < resize["dimension"]:
+                print(
+                    "Resize dimension (y) must be smaller or equal to portrait height!"
+                )
+                resizeErrorCount += 1
+        if resizeErrorCount != 0:
+            quit()
 
 with alive_bar(len(imgList), bar="classic", spinner="dots") as bar:
     for i, imgPath in enumerate(imgList):
@@ -369,7 +423,12 @@ with alive_bar(len(imgList), bar="classic", spinner="dots") as bar:
             # precut image if there is some artefacts on the sides or in the corners
             if precut:
                 imgWidth, imgHeight = img.size
-                precutBBox = (imgWidth/100*precut, imgHeight/100*precut, imgWidth - imgWidth/100*precut, imgHeight - imgHeight/100*precut)
+                precutBBox = (
+                    imgWidth / 100 * precut,
+                    imgHeight / 100 * precut,
+                    imgWidth - imgWidth / 100 * precut,
+                    imgHeight - imgHeight / 100 * precut,
+                )
                 img = img.crop(precutBBox)
 
             # enhance image brightness to get rid of grey background
@@ -388,31 +447,82 @@ with alive_bar(len(imgList), bar="classic", spinner="dots") as bar:
             imgTmpSize = imgTmp.size
 
             # get resize factor
-            resizeFactor, imgResizeDimensions = get_resize_options(resize, customBoundingBox, imgTmpSize)
+            resizeFactor, imgResizeDimensions = get_resize_options(
+                resize, customBoundingBox, imgTmpSize
+            )
 
             # set bounding box, crop and resize
             # in order of priority
             # 1. noBoundingBox has priority over any other bounding box preferences
             if noBoundingBox:
                 img = no_bbox_crop(img, imgCropBBox, imgResizeDimensions, resize)
-            # 2. landscapeSize size or portraitSize is specified
+            # 2. landscapeSize or portraitSize is specified
             elif portraitSize != [0, 0] and landscapeSize != [0, 0]:
-                # cropped image is landscape
-                if imgTmpSize[0] > imgTmpSize[1]:
-                    if resize['dimension'] != 0:
+                # cropped image is landscape or square
+                if imgTmpSize[0] >= imgTmpSize[1]:
+                    if resizeFactor != 1:
                         pass
+                    else:
+                        resize = {"side": "x", "dimension": landscapeSize[0]}
+                        resizeFactor, imgResizeDimensions = get_resize_options(
+                            resize, customBoundingBox, imgTmpSize
+                        )
+                        if imgResizeDimensions[1] > landscapeSize[1]:
+                            resize = {"side": "y", "dimension": landscapeSize[1]}
+                            resizeFactor, imgResizeDimensions = get_resize_options(
+                                resize, customBoundingBox, imgTmpSize
+                            )
+                        xGap = (landscapeSize[0] - imgResizeDimensions[0]) / 2
+                        yGap = (landscapeSize[1] - imgResizeDimensions[1]) / 2
+                        imgCrop = [
+                            imgCropBBox[0] - xGap / resizeFactor,
+                            imgCropBBox[1] - yGap / resizeFactor,
+                            imgCropBBox[2] + xGap / resizeFactor,
+                            imgCropBBox[3] + yGap / resizeFactor,
+                        ]
+                        # crop image to format of landscapeSize
+                        img = ImageOps.invert(img).crop(imgCrop)
+                        img = ImageOps.invert(img)
+                        # resize image to landscapeSize
+                        img.thumbnail(
+                            landscapeSize, resample=Image.LANCZOS, reducing_gap=2.0
+                        )
                 # cropped image is portrait
                 elif imgTmpSize[1] > imgTmpSize[0]:
-                    pass
-                # by chance, cropped image is square
-                else:
-                    pass
+                    if resizeFactor != 1:
+                        pass
+                    else:
+                        resize = {"side": "y", "dimension": portraitSize[1]}
+                        resizeFactor, imgResizeDimensions = get_resize_options(
+                            resize, customBoundingBox, imgTmpSize
+                        )
+                        if imgResizeDimensions[0] > portraitSize[0]:
+                            resize = {"side": "x", "dimension": portraitSize[0]}
+                            resizeFactor, imgResizeDimensions = get_resize_options(
+                                resize, customBoundingBox, imgTmpSize
+                            )
+                        xGap = (portraitSize[0] - imgResizeDimensions[0]) / 2
+                        yGap = (portraitSize[1] - imgResizeDimensions[1]) / 2
+                        imgCrop = [
+                            imgCropBBox[0] - xGap / resizeFactor,
+                            imgCropBBox[1] - yGap / resizeFactor,
+                            imgCropBBox[2] + xGap / resizeFactor,
+                            imgCropBBox[3] + yGap / resizeFactor,
+                        ]
+                        # crop image to format of landscapeSize
+                        img = ImageOps.invert(img).crop(imgCrop)
+                        img = ImageOps.invert(img)
+                        # resize image to landscapeSize
+                        img.thumbnail(
+                            portraitSize, resample=Image.LANCZOS, reducing_gap=2.0
+                        )
             # 3. non-zero customBoundingBox is specified
             elif customBoundingBox != [0, 0, 0, 0]:
-                imgCrop = [floor(imgCropBBox[0] - customBoundingBox[0] / resizeFactor),
-                           floor(imgCropBBox[1] - customBoundingBox[1] / resizeFactor),
-                           ceil(imgCropBBox[2] + customBoundingBox[2] / resizeFactor),
-                           ceil(imgCropBBox[3] + customBoundingBox[3] / resizeFactor)
+                imgCrop = [
+                    floor(imgCropBBox[0] - customBoundingBox[0] / resizeFactor),
+                    floor(imgCropBBox[1] - customBoundingBox[1] / resizeFactor),
+                    ceil(imgCropBBox[2] + customBoundingBox[2] / resizeFactor),
+                    ceil(imgCropBBox[3] + customBoundingBox[3] / resizeFactor),
                 ]
                 # crop image
                 # img = img.crop(imgCrop)
@@ -425,10 +535,16 @@ with alive_bar(len(imgList), bar="classic", spinner="dots") as bar:
                 # resize if defined
                 if resize["dimension"] != 0:
                     imgFinalDimensions = (
-                        imgResizeDimensions[0] + customBoundingBox[0] + customBoundingBox[2],
-                        imgResizeDimensions[1] + customBoundingBox[1] + customBoundingBox[3]
+                        imgResizeDimensions[0]
+                        + customBoundingBox[0]
+                        + customBoundingBox[2],
+                        imgResizeDimensions[1]
+                        + customBoundingBox[1]
+                        + customBoundingBox[3],
                     )
-                    img.thumbnail(imgFinalDimensions, resample=Image.LANCZOS, reducing_gap=2.0)
+                    img.thumbnail(
+                        imgFinalDimensions, resample=Image.LANCZOS, reducing_gap=2.0
+                    )
             # 4. customBoundingBox is specified
             elif customBoundingBox == [0, 0, 0, 0]:
                 img = no_bbox_crop(img, imgCropBBox, imgResizeDimensions, resize)
