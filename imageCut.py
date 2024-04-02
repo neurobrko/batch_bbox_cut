@@ -84,6 +84,13 @@ ap.add_argument(
     metavar="INT,INT,x|y,INT | 0",
 )
 ap.add_argument(
+    "-m",
+    "--minbbox",
+    help="Minimum bounding box if landscape and portrait are specified. 0 means no minimum "
+         "bounding box.",
+    metavar="INT",
+)
+ap.add_argument(
     "-B",
     "--nobbox",
     action="store_true",
@@ -177,12 +184,31 @@ if args["nobbox"]:
 if noBoundingBox:
     customBoundingBox = [0, 0, 0, 0]
 
+# chceck if minimumBoundingBox was specified from CLI
+if args["minbbox"]:
+    try:
+        minbbox = int(args["minbbox"])
+    except ValueError:
+        print("Minimum bounding box must be specified as single integer!")
+        quit()
+    except Exception as err:
+        print(
+            "Something went wrong! (minimumBoundingBox from preferences / "
+            + type(err).__name__
+            + ")"
+        )
+        quit()
+
+
 # check if landscape size was specified in CLI
 if args["landscape"]:
     if args["landscape"] == 0:
         landscapeSize = None
     else:
-        landscapeSize = args["landscape"].split(",")
+        try:
+            landscapeSize = args["landscape"].split(",")
+        except ValueError:
+            print("Landscape size values (4) must be separated by commas!")
         if len(landscapeSize) != 4:
             print("Landscape size argument count error! 4 arguments expected.")
             quit()
@@ -237,7 +263,10 @@ if args["portrait"]:
     if args["portrait"] == 0:
         portraitSize = None
     else:
-        portraitSize = args["portrait"].split(",")
+        try:
+            portraitSize = args["portrait"].split(",")
+        except ValueError:
+            print("Portrait size values (4) must be separated by commas!")
         if len(portraitSize) != 4:
             print("Portrait size argument count error! 4 arguments expected.")
             quit()
@@ -286,21 +315,22 @@ if portraitSize:
         print('Landscape size "y" dimension must be smaller than height!')
         quit()
 
-# if only one of landscapeSize and portraitSize is definied
+# if only one of landscapeSize and portraitSize is defined
 if isinstance(landscapeSize, dict) ^ isinstance(portraitSize, dict):
     print(
-        "Both landscapeSize (-x) and portraitSize (-y) must be definied at the same time!"
+        "Both landscapeSize (-x) and portraitSize (-y) must be defined at the same time!"
     )
     quit()
 
-# if both landscapeSize and portraitSize are correctly definied
+# if both landscapeSize and portraitSize are correctly defined
 if isinstance(landscapeSize, dict) and isinstance(portraitSize, dict):
-    # reset customBoundingBox
-    customBoundingBox = [0, 0, 0, 0]
+    # reset customBoundingBox according to specified minimum bounding box
+    customBoundingBox = [minbbox, minbbox, minbbox, minbbox]
     # reset args["bbox"], so the script doesn't have to check it
     args["bbox"] = None
-    print(customBoundingBox)
-    quit()
+    # set resize variable and reset args["resize"]
+    resize = 0
+    args["resize"] = None
 
 # Check if bounding box was specified in CLI, if not, use from preferences.py
 if args["bbox"] and not noBoundingBox:
@@ -457,7 +487,11 @@ if args["ppi"]:
 
 # check if resize was set in CLI
 if args["resize"]:
-    side, dimension = args["resize"].split(",")
+    try:
+        side, dimension = args["resize"].split(",")
+    except ValueError:
+        print("Resize must be specified as two values (side,dimension)!")
+        quit()
     if not side in ["x", "y"]:
         print('Side must be specified as "x" or "y"!')
         quit()
@@ -470,8 +504,6 @@ if args["resize"]:
         print("Something went wrong! (resize from cli / " + type(err).__name__ + ")")
         quit()
     resize = {"side": side, "dimension": dimension}
-
-print(customBoundingBox)
 
 with alive_bar(len(imgList), bar="classic", spinner="dots") as bar:
     for i, imgPath in enumerate(imgList):
@@ -508,19 +540,37 @@ with alive_bar(len(imgList), bar="classic", spinner="dots") as bar:
             # get dimensions of cropped image
             imgTmpSize = imgTmp.size
 
-            # get resize factor
-            resizeFactor, imgResizeDimensions = get_resize_options(
-                resize, customBoundingBox, imgTmpSize
-            )
-
             # set bounding box, crop and resize
             # in order of priority
             # 1. noBoundingBox has priority over any other bounding box preferences
             if noBoundingBox:
+                # get resize factor
+                resizeFactor, imgResizeDimensions = get_resize_options(
+                    resize, customBoundingBox, imgTmpSize
+                )
                 img = no_bbox_crop(img, imgCropBBox, imgResizeDimensions, resize)
             # 2. landscapeSize or portraitSize is specified
 
-            ### TUTO TO TREBA CELE DOKODIT!!!
+            elif isinstance(landscapeSize, dict) and isinstance(portraitSize, dict):
+                print("To pude!")
+                quit()
+
+                ### TUTO TO TREBA CELE DOKODIT!!!
+
+                # # cropped image is landscape or square
+                # if imgTmpSize[0] >= imgTmpSize[1]:
+                #     resize = {
+                #         "side": landscapeSize["side"],
+                #         "dimension": landscapeSize["dimension"],
+                #     }
+                #     # get resize factor
+                #     resizeFactor, imgResizeDimensions = get_resize_options(
+                #         resize, customBoundingBox, imgTmpSize
+                #     )
+                #     # check if resized image is within width x height
+                #     if landscapeSize["side"] == "x" and imgResizeDimensions[1] > landscapeSize["height"]
+
+                ### END
 
             # elif portraitSize != [0, 0] and landscapeSize != [0, 0]:
             #     # cropped image is landscape or square
@@ -577,6 +627,10 @@ with alive_bar(len(imgList), bar="classic", spinner="dots") as bar:
             #             )
             # 3. non-zero customBoundingBox is specified
             elif customBoundingBox != [0, 0, 0, 0]:
+                # get resize factor
+                resizeFactor, imgResizeDimensions = get_resize_options(
+                    resize, customBoundingBox, imgTmpSize
+                )
                 imgCrop = get_imgCrop(imgCropBBox, customBoundingBox, resizeFactor)
                 # crop image
                 # img = img.crop(imgCrop)
@@ -599,8 +653,12 @@ with alive_bar(len(imgList), bar="classic", spinner="dots") as bar:
                     img.thumbnail(
                         imgFinalDimensions, resample=Image.LANCZOS, reducing_gap=2.0
                     )
-            # 4. customBoundingBox is specified
+            # 4. zero customBoundingBox is specified
             elif customBoundingBox == [0, 0, 0, 0]:
+                # get resize factor
+                resizeFactor, imgResizeDimensions = get_resize_options(
+                    resize, customBoundingBox, imgTmpSize
+                )
                 img = no_bbox_crop(img, imgCropBBox, imgResizeDimensions, resize)
             # 5. some other condition not anticipated yet :)
             else:

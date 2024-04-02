@@ -20,6 +20,8 @@ File _preferences.py_ contains all the settings, all of them can be changed with
 ***boundingBox*** You can set custom bounding box as list: [left, top, right, bottom].<br>
 ***landscapeSize*** Final dimensions of image if cropped image is landscape. If *boundingBox* is specified other than 0, *landscapeSize* is ignored.<br>
 ***portraitSize*** Final dimensions of image if cropped image is portrait. If *boundingBox* is specified other than 0, *portraitSize* is ignored.<br>
+***minimumBoundingBox*** If *landscapeSize* and *portraitSize* are specified, minimum bounding box can be specified to avoid cropped image being "stuck" to the sides. 
+It's kind of a failsafe, so all the sides of mininum bounding box are the same.<br>
 ***noBoundingBox*** No bounding box is added ignoring *boundingBox*, *portraitSize* or *landscapeSize*.<br>
 ***precut*** You can cut sides of image before processing. Specified as integer for percents.<br>
 ***prefix*** Add prefix to new filename.<sup>_WARN_</sup><br>
@@ -38,7 +40,8 @@ after resizing, therefore final dimensions of the image will be *resized size + 
 -d | **Path to directory:** If not specified with -d flag the script will prompt you. You can use both full or relative path.<br>
 -b | **Bounding Box:** If only one number is supplied, all sides will be set same. If you want each side different supply four numbers separated with comas, without spaces.<br>
 -x | **Landscape Size:** Final dimensions of image if cropped image is landscape. If *-b* is specified other than 0, *-x* is ignored.<br>
--x | **Portrait Size:** Final dimensions of image if cropped image is portrait. If *-b* is specified other than 0, *-y* is ignored.<br>
+-y | **Portrait Size:** Final dimensions of image if cropped image is portrait. If *-b* is specified other than 0, *-y* is ignored.<br>
+-m | **Minimum Bounding Box: If *Lnadscape Size* and *Portrait Size* are specified, minimum bounding box can be specified to avoid cropped image being "stuck" to the sides.**  
 -B | **No Bounding Box:** No bounding box is added ignoring *-b*, *-x* or *-y*.<br>
 -c | **Precut:** You can cut sides of image before processing. Specified as integer for percents.<br>
 -e | **Enhance:** Level of brightness enhancement to override gray background and/or shadows. Should be float over 1.0.<br>
@@ -58,6 +61,7 @@ after resizing, therefore final dimensions of the image will be *resized size + 
 There is too many conditions regarding custom bounding box, so it is strongly recommended to use *-B* flag in CLI or *noBoundingBox* variable if you don't want to add any bounding box.
 
 ## TO DO
+- [ ] rewrite this README!
 - [ ] add option not to crop bounding box, so the script can be used for resize/change of ppi/adding prefix & suffix only (-x)
 bounding box added to specified dimensions. **PROBLEM:** Non white background
 - [ ] print some useful report on exit
