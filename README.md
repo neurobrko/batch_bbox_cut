@@ -3,14 +3,14 @@
 **Author:** Marek Paulík | elvis@elvis.sk
 
 ## Description
-Script for cutting out white bounding box of images in specified folder with simple progress bar indicating running of the script.
+Script for cutting out white (or light grey) bounding box of images in specified folder with simple progress bar indicating running of the script.
 Few settings can be tweaked either by editing _preferences.py_ or with command line arguments.
 ## Version
-1.0.12
+1.1.01
 
 ## Usage
 CLI arguments overrides _preferences.py_ therefore it is recommended to use _preferences.py_ for default settings and CLI arguments for per use tweaks.  
-File _preferences.py_ contains all the settings, all of them can be changed with CLI arguments except for processed file types.
+File _preferences.py_ contains all the settings, all of them can be changed with CLI arguments except for processed filetypes.
 
 ### preferences.py
 ***extList*** Contains file extensions to be processed. Currently tested only with _jpg_ and _jpeg_. Specify extensions in lowercase. Also uppercase extensions will be processed.<br>
@@ -39,9 +39,9 @@ after resizing, therefore final dimensions of the image will be *resized size + 
 -h | **Help:** Prints out help.<br>
 -d | **Path to directory:** If not specified with -d flag the script will prompt you. You can use both full or relative path.<br>
 -b | **Bounding Box:** If only one number is supplied, all sides will be set same. If you want each side different supply four numbers separated with comas, without spaces.<br>
--x | **Landscape Size:** Final dimensions of image if cropped image is landscape. If *-b* is specified other than 0, *-x* is ignored.<br>
--y | **Portrait Size:** Final dimensions of image if cropped image is portrait. If *-b* is specified other than 0, *-y* is ignored.<br>
--m | **Minimum Bounding Box: If *Lnadscape Size* and *Portrait Size* are specified, minimum bounding box can be specified to avoid cropped image being "stuck" to the sides.**  
+-x | **Landscape Size:** Final dimensions of image if cropped image is landscape. Also dimension of original image inside final image is specified.<br>
+-y | **Portrait Size:** Final dimensions of image if cropped image is portrait. Also dimension of original image inside final image is specified.<br>
+-m | **Minimum Bounding Box:** If *Lnadscape Size* and *Portrait Size* are specified, minimum bounding box can be specified to avoid cropped image being "stuck" to the sides.<br>  
 -B | **No Bounding Box:** No bounding box is added ignoring *-b*, *-x* or *-y*.<br>
 -c | **Precut:** You can cut sides of image before processing. Specified as integer for percents.<br>
 -e | **Enhance:** Level of brightness enhancement to override gray background and/or shadows. Should be float over 1.0.<br>
@@ -63,7 +63,7 @@ There is too many conditions regarding custom bounding box, so it is strongly re
 ## TO DO
 - [ ] rewrite this README!
 - [ ] add option not to crop bounding box, so the script can be used for resize/change of ppi/adding prefix & suffix only (-x)
-bounding box added to specified dimensions. **PROBLEM:** Non white background
+bounding box added to specified dimensions. **PROBLEM:** Non-white background
 - [ ] print some useful report on exit
 - [ ] add some validation to prefix, suffix and separators regarding invalid characters
 - [ ] GUI

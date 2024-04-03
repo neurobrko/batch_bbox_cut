@@ -595,10 +595,10 @@ with alive_bar(len(imgList), bar="classic", spinner="dots") as bar:
 
                     # add bounding box to fit width and height
                     fitBoundingBox = [
-                        ((landscapeSize["width"] - imgResizeDimensions[0]) / 2),
-                        ((landscapeSize["height"] - imgResizeDimensions[1]) / 2),
-                        ((landscapeSize["width"] - imgResizeDimensions[0]) / 2),
-                        ((landscapeSize["height"] - imgResizeDimensions[1]) / 2),
+                        ceil((landscapeSize["width"] - imgResizeDimensions[0]) / 2),
+                        ceil((landscapeSize["height"] - imgResizeDimensions[1]) / 2),
+                        ceil((landscapeSize["width"] - imgResizeDimensions[0]) / 2),
+                        ceil((landscapeSize["height"] - imgResizeDimensions[1]) / 2),
                     ]
                     imgCrop = get_imgCrop(imgCropBBox, fitBoundingBox, resizeFactor)
                     # crop image to format of landscapeSize
@@ -646,10 +646,10 @@ with alive_bar(len(imgList), bar="classic", spinner="dots") as bar:
 
                     # add bounding box to fit width and height
                     fitBoundingBox = [
-                        ((portraitSize["width"] - imgResizeDimensions[0]) / 2),
-                        ((portraitSize["height"] - imgResizeDimensions[1]) / 2),
-                        ((portraitSize["width"] - imgResizeDimensions[0]) / 2),
-                        ((portraitSize["height"] - imgResizeDimensions[1]) / 2),
+                        ceil((portraitSize["width"] - imgResizeDimensions[0]) / 2),
+                        ceil((portraitSize["height"] - imgResizeDimensions[1]) / 2),
+                        ceil((portraitSize["width"] - imgResizeDimensions[0]) / 2),
+                        ceil((portraitSize["height"] - imgResizeDimensions[1]) / 2),
                     ]
                     imgCrop = get_imgCrop(imgCropBBox, fitBoundingBox, resizeFactor)
                     # crop image to format of portraitSize
