@@ -17,10 +17,10 @@ boundingBox = [0, 0, 0, 0]
 
 # *-* Specify final image size according to format of the cropped image
 #     it is ignored, if set to None
-portraitSize = None
-landscapeSize = None
-# portraitSize = {"width": 600, "height": 750, "side": "x", "dimension": 430}
-# landscapeSize = {"width": 980, "height": 750, "side": "x", "dimension": 810}
+# portraitSize = None
+# landscapeSize = None
+portraitSize = {"width": 600, "height": 750, "side": "x", "dimension": 430}
+landscapeSize = {"width": 980, "height": 750, "side": "x", "dimension": 810}
 
 # *-* When landscape size and portrait size are specified minimum bounding box
 #     can be specified to avoid cropped image being "stuck" to the sides.

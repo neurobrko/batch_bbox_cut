@@ -87,7 +87,7 @@ ap.add_argument(
     "-m",
     "--minbbox",
     help="Minimum bounding box if landscape and portrait are specified. 0 means no minimum "
-         "bounding box.",
+    "bounding box.",
     metavar="INT",
 )
 ap.add_argument(
@@ -187,7 +187,7 @@ if noBoundingBox:
 # chceck if minimumBoundingBox was specified from CLI
 if args["minbbox"]:
     try:
-        minbbox = int(args["minbbox"])
+        minimumBoundingBox = int(args["minbbox"])
     except ValueError:
         print("Minimum bounding box must be specified as single integer!")
         quit()
@@ -325,7 +325,12 @@ if isinstance(landscapeSize, dict) ^ isinstance(portraitSize, dict):
 # if both landscapeSize and portraitSize are correctly defined
 if isinstance(landscapeSize, dict) and isinstance(portraitSize, dict):
     # reset customBoundingBox according to specified minimum bounding box
-    customBoundingBox = [minbbox, minbbox, minbbox, minbbox]
+    customBoundingBox = [
+        minimumBoundingBox,
+        minimumBoundingBox,
+        minimumBoundingBox,
+        minimumBoundingBox,
+    ]
     # reset args["bbox"], so the script doesn't have to check it
     args["bbox"] = None
     # set resize variable and reset args["resize"]
@@ -552,79 +557,113 @@ with alive_bar(len(imgList), bar="classic", spinner="dots") as bar:
             # 2. landscapeSize or portraitSize is specified
 
             elif isinstance(landscapeSize, dict) and isinstance(portraitSize, dict):
-                print("To pude!")
-                quit()
+                # cropped image is landscape or square
+                if imgTmpSize[0] >= imgTmpSize[1]:
+                    resize = {
+                        "side": landscapeSize["side"],
+                        "dimension": landscapeSize["dimension"],
+                    }
+                    # get resize factor
+                    resizeFactor, imgResizeDimensions = get_resize_options(
+                        resize, customBoundingBox, imgTmpSize
+                    )
+                    # check if resized image is within width x height
+                    if (
+                        landscapeSize["side"] == "x"
+                        and imgResizeDimensions[1] > landscapeSize["height"]
+                    ):
+                        resize = {
+                            "side": "y",
+                            "dimension": landscapeSize["height"]
+                            - 2 * minimumBoundingBox,
+                        }
+                        resizeFactor, imgResizeDimensions = get_resize_options(
+                            resize, customBoundingBox, imgTmpSize
+                        )
+                    elif (
+                        landscapeSize["side"] == "y"
+                        and imgResizeDimensions[0] > landscapeSize["width"]
+                    ):
+                        resize = {
+                            "side": "x",
+                            "dimension": landscapeSize["width"]
+                            - 2 * minimumBoundingBox,
+                        }
+                        resizeFactor, imgResizeDimensions = get_resize_options(
+                            resize, customBoundingBox, imgTmpSize
+                        )
 
-                ### TUTO TO TREBA CELE DOKODIT!!!
+                    # add bounding box to fit width and height
+                    fitBoundingBox = [
+                        ((landscapeSize["width"] - imgResizeDimensions[0]) / 2),
+                        ((landscapeSize["height"] - imgResizeDimensions[1]) / 2),
+                        ((landscapeSize["width"] - imgResizeDimensions[0]) / 2),
+                        ((landscapeSize["height"] - imgResizeDimensions[1]) / 2),
+                    ]
+                    imgCrop = get_imgCrop(imgCropBBox, fitBoundingBox, resizeFactor)
+                    # crop image to format of landscapeSize
+                    img = img.crop(imgCrop)
+                    # resize image to landscapeSize
+                    img.thumbnail(
+                        (landscapeSize["width"], landscapeSize["height"]),
+                        resample=Image.LANCZOS,
+                        reducing_gap=2.0,
+                    )
+                # cropped image is portrait
+                elif imgTmpSize[0] < imgTmpSize[1]:
+                    resize = {
+                        "side": portraitSize["side"],
+                        "dimension": portraitSize["dimension"],
+                    }
+                    # get resize factor
+                    resizeFactor, imgResizeDimensions = get_resize_options(
+                        resize, customBoundingBox, imgTmpSize
+                    )
+                    # check if resized image is within width x height
+                    if (
+                        portraitSize["side"] == "x"
+                        and imgResizeDimensions[1] > portraitSize["height"]
+                    ):
+                        resize = {
+                            "side": "y",
+                            "dimension": portraitSize["height"]
+                            - 2 * minimumBoundingBox,
+                        }
+                        resizeFactor, imgResizeDimensions = get_resize_options(
+                            resize, customBoundingBox, imgTmpSize
+                        )
+                    elif (
+                        portraitSize["side"] == "y"
+                        and imgResizeDimensions[0] > portraitSize["width"]
+                    ):
+                        resize = {
+                            "side": "x",
+                            "dimension": portraitSize["width"] - 2 * minimumBoundingBox,
+                        }
+                        resizeFactor, imgResizeDimensions = get_resize_options(
+                            resize, customBoundingBox, imgTmpSize
+                        )
 
-                # # cropped image is landscape or square
-                # if imgTmpSize[0] >= imgTmpSize[1]:
-                #     resize = {
-                #         "side": landscapeSize["side"],
-                #         "dimension": landscapeSize["dimension"],
-                #     }
-                #     # get resize factor
-                #     resizeFactor, imgResizeDimensions = get_resize_options(
-                #         resize, customBoundingBox, imgTmpSize
-                #     )
-                #     # check if resized image is within width x height
-                #     if landscapeSize["side"] == "x" and imgResizeDimensions[1] > landscapeSize["height"]
+                    # add bounding box to fit width and height
+                    fitBoundingBox = [
+                        ((portraitSize["width"] - imgResizeDimensions[0]) / 2),
+                        ((portraitSize["height"] - imgResizeDimensions[1]) / 2),
+                        ((portraitSize["width"] - imgResizeDimensions[0]) / 2),
+                        ((portraitSize["height"] - imgResizeDimensions[1]) / 2),
+                    ]
+                    imgCrop = get_imgCrop(imgCropBBox, fitBoundingBox, resizeFactor)
+                    # crop image to format of portraitSize
+                    img = img.crop(imgCrop)
+                    # resize image to portraitSize
+                    img.thumbnail(
+                        (portraitSize["width"], portraitSize["height"]),
+                        resample=Image.LANCZOS,
+                        reducing_gap=2.0,
+                    )
+                else:
+                    print("Something went terribly wrong with image sizes...")
+                    quit()
 
-                ### END
-
-            # elif portraitSize != [0, 0] and landscapeSize != [0, 0]:
-            #     # cropped image is landscape or square
-            #     if imgTmpSize[0] > imgTmpSize[1]:
-            #         if resizeFactor != 1:
-            #             pass
-            #         else:
-            #             resizeLocal = {"side": "y", "dimension": landscapeSize[1]}
-            #             resizeFactor, imgResizeDimensions = get_resize_options(
-            #                 resizeLocal, customBoundingBox, imgTmpSize
-            #             )
-            #             if imgResizeDimensions[0] > landscapeSize[0]:
-            #                 resizeLocal = {"side": "x", "dimension": landscapeSize[0]}
-            #                 resizeFactor, imgResizeDimensions = get_resize_options(
-            #                     resizeLocal, customBoundingBox, imgTmpSize
-            #                 )
-            #             xGap = (landscapeSize[0] - imgResizeDimensions[0]) / 2
-            #             yGap = (landscapeSize[1] - imgResizeDimensions[1]) / 2
-            #             imgCrop = get_imgCrop(
-            #                 imgCropBBox, [xGap, yGap, xGap, yGap], resizeFactor
-            #             )
-            #             # crop image to format of landscapeSize
-            #             img = ImageOps.invert(img).crop(imgCrop)
-            #             img = ImageOps.invert(img)
-            #             # resize image to landscapeSize
-            #             img.thumbnail(
-            #                 landscapeSize, resample=Image.LANCZOS, reducing_gap=2.0
-            #             )
-            #     # cropped image is portrait
-            #     elif imgTmpSize[1] > imgTmpSize[0]:
-            #         if resizeFactor != 1:
-            #             pass
-            #         else:
-            #             resizeLocal = {"side": "y", "dimension": portraitSize[1]}
-            #             resizeFactor, imgResizeDimensions = get_resize_options(
-            #                 resizeLocal, customBoundingBox, imgTmpSize
-            #             )
-            #             if imgResizeDimensions[0] > portraitSize[0]:
-            #                 resizeLocal = {"side": "x", "dimension": portraitSize[0]}
-            #                 resizeFactor, imgResizeDimensions = get_resize_options(
-            #                     resizeLocal, customBoundingBox, imgTmpSize
-            #                 )
-            #             xGap = (portraitSize[0] - imgResizeDimensions[0]) / 2
-            #             yGap = (portraitSize[1] - imgResizeDimensions[1]) / 2
-            #             imgCrop = get_imgCrop(
-            #                 imgCropBBox, [xGap, yGap, xGap, yGap], resizeFactor
-            #             )
-            #             # crop image to format of landscapeSize
-            #             img = ImageOps.invert(img).crop(imgCrop)
-            #             img = ImageOps.invert(img)
-            #             # resize image to landscapeSize
-            #             img.thumbnail(
-            #                 portraitSize, resample=Image.LANCZOS, reducing_gap=2.0
-            #             )
             # 3. non-zero customBoundingBox is specified
             elif customBoundingBox != [0, 0, 0, 0]:
                 # get resize factor
