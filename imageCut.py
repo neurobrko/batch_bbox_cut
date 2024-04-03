@@ -4,9 +4,56 @@ from preferences import *
 from alive_progress import alive_bar
 from pathlib import Path
 from PIL import Image, ImageOps, ImageEnhance
+from math import ceil, floor
 import os
 import argparse
 import glob
+
+
+# FUNCTIONS
+def no_bbox_crop(image, cropBox, imgResizeDimensions, resize):
+    imgCrop = cropBox
+    # crop image
+    image = image.crop(imgCrop)
+    # resize if defined
+    if resize["dimension"] != 0:
+        image.thumbnail(imgResizeDimensions, resample=Image.LANCZOS, reducing_gap=2.0)
+    return image
+
+
+def get_resize_options(resize, customBoundingBox, imgTmpSize):
+    if resize["dimension"] != 0:
+        match resize["side"]:
+            case "x":
+                imgNewWidth = (
+                    resize["dimension"] - customBoundingBox[0] - customBoundingBox[2]
+                )
+                resizeFactor = imgNewWidth / imgTmpSize[0]
+                imgNewHeight = ceil(imgTmpSize[1] * resizeFactor)
+            case "y":
+                imgNewHeight = (
+                    resize["dimension"] - customBoundingBox[1] - customBoundingBox[3]
+                )
+                resizeFactor = imgNewHeight / imgTmpSize[1]
+                imgNewWidth = ceil(imgTmpSize[0] * resizeFactor)
+        imgResizeDimensions = (imgNewWidth, imgNewHeight)
+    else:
+        resizeFactor = 1
+        imgResizeDimensions = imgTmpSize
+
+    return resizeFactor, imgResizeDimensions
+
+
+def get_imgCrop(imgCropBBox, customBoundingBox, resizeFactor):
+    imgCrop = [
+        floor(imgCropBBox[0] - customBoundingBox[0] / resizeFactor),
+        floor(imgCropBBox[1] - customBoundingBox[1] / resizeFactor),
+        ceil(imgCropBBox[2] + customBoundingBox[2] / resizeFactor),
+        ceil(imgCropBBox[3] + customBoundingBox[3] / resizeFactor),
+    ]
+
+    return imgCrop
+
 
 # Create argument parser
 ap = argparse.ArgumentParser()
@@ -16,9 +63,38 @@ ap.add_argument(
 ap.add_argument(
     "-b",
     "--bbox",
-    help="Bounding box size. Single number to specify all, or four numbers (separated with comas " 
-         "without spaces - left,top,right,bottom) to specify each.",
+    help="Bounding box size. Single number to specify all, or four numbers (separated with comas "
+    "without spaces - left,top,right,bottom) to specify each.",
     metavar="0 | 0,0,0,0",
+)
+ap.add_argument(
+    "-x",
+    "--landscape",
+    help="Final size of the image if cropped image is landscape. If specified both -x and -y, -b is ignored. "
+    "Specified as two integers, side and one integer, separated by coma, no spaces. "
+    "To cancel parameters from preferences.py specify as 0.",
+    metavar="INT,INT,x|y,INT | 0",
+)
+ap.add_argument(
+    "-y",
+    "--portrait",
+    help="Final size of the image if cropped image is portrait. If specified both -x and -y, -b is ignored. "
+    "Specified as two integers, side and one integer, separated by coma, no spaces. "
+    "To cancel parameters from preferences.py specify as 0.",
+    metavar="INT,INT,x|y,INT | 0",
+)
+ap.add_argument(
+    "-m",
+    "--minbbox",
+    help="Minimum bounding box if landscape and portrait are specified. 0 means no minimum "
+    "bounding box.",
+    metavar="INT",
+)
+ap.add_argument(
+    "-B",
+    "--nobbox",
+    action="store_true",
+    help="Do not add any bounding box. If specified -b, -x and -y are ignored.",
 )
 ap.add_argument(
     "-c",
@@ -30,7 +106,7 @@ ap.add_argument(
     "-e",
     "--enhance",
     help="Enhance brightness while processing to override gray background. Final image is saved without enhancement."
-         "Value of 1.0 and greater. 0 for no enhancement.",
+    "Value of 1.0 and greater. 0 for no enhancement.",
     metavar="FLOAT",
 )
 ap.add_argument(
@@ -42,18 +118,19 @@ ap.add_argument(
 ap.add_argument(
     "-n",
     "--nooverwrite",
-    help="Do not overwrite original files and save copies to specified directory in original directory. " 
-         "Will be created if needed.",
+    help="Do not overwrite original files and save copies to specified directory in original directory. "
+    "Will be created if needed.",
     metavar="DIRNAME",
 )
 ap.add_argument(
     "-p", "--ppi", help="Change resolution to specified dpi.", metavar="INT"
 )
 ap.add_argument(
-    "-s",
-    "--size",
-    help="Resize longer side to specified size in pixels.",
-    metavar="INT",
+    "-r",
+    "--resize",
+    help='Resize specified side to specified size in pixels. Side is "x" or "y", size is integer. '
+    "Separated by coma, no spaces.",
+    metavar="(x|y,INT)",
 )
 ap.add_argument(
     "-a",
@@ -99,8 +176,169 @@ if args["welcome"] or welcomeMsg:
     print("***")
     print("")
 
+# check if no bounding box was specified in CLI
+if args["nobbox"]:
+    noBoundingBox = True
+
+# reset custom bounding box, if noBoundingBox == True
+if noBoundingBox:
+    customBoundingBox = [0, 0, 0, 0]
+
+# chceck if minimumBoundingBox was specified from CLI
+if args["minbbox"]:
+    try:
+        minimumBoundingBox = int(args["minbbox"])
+    except ValueError:
+        print("Minimum bounding box must be specified as single integer!")
+        quit()
+    except Exception as err:
+        print(
+            "Something went wrong! (minimumBoundingBox from preferences / "
+            + type(err).__name__
+            + ")"
+        )
+        quit()
+
+
+# check if landscape size was specified in CLI
+if args["landscape"]:
+    if args["landscape"] == 0:
+        landscapeSize = None
+    else:
+        try:
+            landscapeSize = args["landscape"].split(",")
+        except ValueError:
+            print("Landscape size values (4) must be separated by commas!")
+        if len(landscapeSize) != 4:
+            print("Landscape size argument count error! 4 arguments expected.")
+            quit()
+        try:
+            landscapeSize = {
+                "width": int(landscapeSize[0]),
+                "height": int(landscapeSize[1]),
+                "side": str(landscapeSize[2]),
+                "dimension": int(landscapeSize[3]),
+            }
+        except ValueError:
+            print("Wrong values for landscape size!")
+            quit()
+        except Exception as err:
+            print(
+                "Something went wrong! (landscapeSize from preferences / "
+                + type(err).__name__
+                + ")"
+            )
+            quit()
+
+if landscapeSize:
+    # evaluate landscapeSize preferences
+    if landscapeSize["side"] not in ["x", "y"]:
+        print("Side in landscape size must be either x or y!")
+        quit()
+    landscapeDimensionsError = 0
+    if landscapeSize["width"] <= 0:
+        landscapeDimensionsError += 1
+    elif landscapeSize["height"] <= 0:
+        landscapeDimensionsError += 1
+    elif landscapeSize["dimension"] <= 0:
+        landscapeDimensionsError += 1
+    if landscapeDimensionsError != 0:
+        print("All landscape size dimensions must be greater than 0!")
+        quit()
+    if (
+        landscapeSize["side"] == "x"
+        and landscapeSize["dimension"] > landscapeSize["width"]
+    ):
+        print('Landscape size "x" dimension must be smaller than width!')
+        quit()
+    if (
+        landscapeSize["side"] == "y"
+        and landscapeSize["dimension"] > landscapeSize["height"]
+    ):
+        print('Landscape size "y" dimension must be smaller than height!')
+        quit()
+
+# check if portrait size was specified in CLI
+if args["portrait"]:
+    if args["portrait"] == 0:
+        portraitSize = None
+    else:
+        try:
+            portraitSize = args["portrait"].split(",")
+        except ValueError:
+            print("Portrait size values (4) must be separated by commas!")
+        if len(portraitSize) != 4:
+            print("Portrait size argument count error! 4 arguments expected.")
+            quit()
+        try:
+            portraitSize = {
+                "width": int(portraitSize[0]),
+                "height": int(portraitSize[1]),
+                "side": str(portraitSize[2]),
+                "dimension": int(portraitSize[3]),
+            }
+        except ValueError:
+            print("Wrong values for portrait size!")
+            quit()
+        except Exception as err:
+            print(
+                "Something went wrong! (portraitSize from preferences / "
+                + type(err).__name__
+                + ")"
+            )
+            quit()
+if portraitSize:
+    # Evaluete potraitSize preferences
+    if portraitSize["side"] not in ["x", "y"]:
+        print("Side in portrait size must be either x or y!")
+        quit()
+    portraitDimensionsError = 0
+    if portraitSize["width"] <= 0:
+        portraitDimensionsError += 1
+    elif portraitSize["height"] <= 0:
+        portraitDimensionsError += 1
+    elif portraitSize["dimension"] <= 0:
+        portraitDimensionsError += 1
+    if portraitDimensionsError != 0:
+        print("All portrait size dimensions must be greater than 0!")
+        quit()
+    if (
+        portraitSize["side"] == "x"
+        and portraitSize["dimension"] > portraitSize["width"]
+    ):
+        print('Landscape size "x" dimension must be smaller than width!')
+        quit()
+    if (
+        portraitSize["side"] == "y"
+        and portraitSize["dimension"] > portraitSize["height"]
+    ):
+        print('Landscape size "y" dimension must be smaller than height!')
+        quit()
+
+# if only one of landscapeSize and portraitSize is defined
+if isinstance(landscapeSize, dict) ^ isinstance(portraitSize, dict):
+    print(
+        "Both landscapeSize (-x) and portraitSize (-y) must be defined at the same time!"
+    )
+    quit()
+
+# if both landscapeSize and portraitSize are correctly defined
+if isinstance(landscapeSize, dict) and isinstance(portraitSize, dict):
+    # reset customBoundingBox according to specified minimum bounding box
+    customBoundingBox = [
+        minimumBoundingBox,
+        minimumBoundingBox,
+        minimumBoundingBox,
+        minimumBoundingBox,
+    ]
+    # reset args["bbox"], so the script doesn't have to check it
+    args["bbox"] = None
+    # set resize variable and reset args["resize"]
+    resize = 0
+    args["resize"] = None
+
 # Check if bounding box was specified in CLI, if not, use from preferences.py
-if args["bbox"]:
+if args["bbox"] and not noBoundingBox:
     try:
         customBoundingBox = []
         cbbox = int(args["bbox"])
@@ -146,7 +384,7 @@ if args["precut"]:
         print("Precut must be between 1 and 99!")
         quit()
 
-# check if engancement was specified in CLI
+# check if enhancement was specified in CLI
 if args["enhance"]:
     try:
         brightness = float(args["enhance"])
@@ -154,11 +392,14 @@ if args["enhance"]:
         print("Brightness enhancement must be a float.")
         quit()
     except Exception as err:
-        print("Something went wrong! (Brightness from cli / " + type(err).__name__ + ")")
+        print(
+            "Something went wrong! (Brightness from cli / " + type(err).__name__ + ")"
+        )
         quit()
     if brightness < 0:
         print("Brightness must be greater then 0.0!")
         quit()
+
 
 # process directory path user input
 def user_input():
@@ -201,6 +442,7 @@ if args["nooverwrite"]:
     overwrite = False
     processedDir = args["nooverwrite"]
 
+
 if not overwrite:
     destPath = os.path.join(processDir, processedDir)
     if not Path(destPath).is_dir():
@@ -239,17 +481,34 @@ else:
 
 # check if resolution was specified in CLI
 if args["ppi"]:
-    ppi = int(args["ppi"])
+    try:
+        ppi = int(args["ppi"])
+    except ValueError:
+        print("Resolution must be specified as integer!")
+        quit()
+    except Exception as err:
+        print("Something went wrong! (ppi from cli / " + type(err).__name__ + ")")
+        quit()
 
 # check if resize was set in CLI
-if args["size"]:
-    size = int(args["size"])
-# if resize specified, create tuple for thumbnail()
-if size:
-    imgSize = (
-        size - customBoundingBox[0] - customBoundingBox[2],
-        size - customBoundingBox[1] - customBoundingBox[3],
-    )
+if args["resize"]:
+    try:
+        side, dimension = args["resize"].split(",")
+    except ValueError:
+        print("Resize must be specified as two values (side,dimension)!")
+        quit()
+    if not side in ["x", "y"]:
+        print('Side must be specified as "x" or "y"!')
+        quit()
+    try:
+        dimension = int(dimension)
+    except ValueError:
+        print("Resize dimension must be integer!")
+        quit()
+    except Exception as err:
+        print("Something went wrong! (resize from cli / " + type(err).__name__ + ")")
+        quit()
+    resize = {"side": side, "dimension": dimension}
 
 with alive_bar(len(imgList), bar="classic", spinner="dots") as bar:
     for i, imgPath in enumerate(imgList):
@@ -262,7 +521,13 @@ with alive_bar(len(imgList), bar="classic", spinner="dots") as bar:
             # precut image if there is some artefacts on the sides or in the corners
             if precut:
                 imgWidth, imgHeight = img.size
-                precutBBox = (imgWidth/100*precut, imgHeight/100*precut, imgWidth - imgWidth/100*precut, imgHeight - imgHeight/100*precut)
+                precutBBox = (
+                    int(imgWidth / 100 * precut),
+                    int(imgHeight / 100 * precut),
+                    int(imgWidth - imgWidth / 100 * precut),
+                    int(imgHeight - imgHeight / 100 * precut),
+                )
+
                 img = img.crop(precutBBox)
 
             # enhance image brightness to get rid of grey background
@@ -275,20 +540,169 @@ with alive_bar(len(imgList), bar="classic", spinner="dots") as bar:
             # invert image to correctly calculate cropbox
             imgCropBBox = ImageOps.invert(imgEnhanced).getbbox()
 
-            # add custom bounding box
-            imgCropBBox = (
-                imgCropBBox[0] - customBoundingBox[0],
-                imgCropBBox[1] - customBoundingBox[1],
-                imgCropBBox[2] + customBoundingBox[2],
-                imgCropBBox[3] + customBoundingBox[3]
-            )
+            # create temporary image to calculate custom bounding box
+            imgTmp = img.crop(imgCropBBox)
+            # get dimensions of cropped image
+            imgTmpSize = imgTmp.size
 
-            # crop bounding box
-            img = img.crop(imgCropBBox)
+            # set bounding box, crop and resize
+            # in order of priority
+            # 1. noBoundingBox has priority over any other bounding box preferences
+            if noBoundingBox:
+                # get resize factor
+                resizeFactor, imgResizeDimensions = get_resize_options(
+                    resize, customBoundingBox, imgTmpSize
+                )
+                img = no_bbox_crop(img, imgCropBBox, imgResizeDimensions, resize)
+            # 2. landscapeSize or portraitSize is specified
 
-            # change size if defined
-            if size:
-                img.thumbnail(imgSize, resample=Image.LANCZOS, reducing_gap=2.0)
+            elif isinstance(landscapeSize, dict) and isinstance(portraitSize, dict):
+                # cropped image is landscape or square
+                if imgTmpSize[0] >= imgTmpSize[1]:
+                    resize = {
+                        "side": landscapeSize["side"],
+                        "dimension": landscapeSize["dimension"],
+                    }
+                    # get resize factor
+                    resizeFactor, imgResizeDimensions = get_resize_options(
+                        resize, customBoundingBox, imgTmpSize
+                    )
+                    # check if resized image is within width x height
+                    if (
+                        landscapeSize["side"] == "x"
+                        and imgResizeDimensions[1] > landscapeSize["height"]
+                    ):
+                        resize = {
+                            "side": "y",
+                            "dimension": landscapeSize["height"]
+                            - 2 * minimumBoundingBox,
+                        }
+                        resizeFactor, imgResizeDimensions = get_resize_options(
+                            resize, customBoundingBox, imgTmpSize
+                        )
+                    elif (
+                        landscapeSize["side"] == "y"
+                        and imgResizeDimensions[0] > landscapeSize["width"]
+                    ):
+                        resize = {
+                            "side": "x",
+                            "dimension": landscapeSize["width"]
+                            - 2 * minimumBoundingBox,
+                        }
+                        resizeFactor, imgResizeDimensions = get_resize_options(
+                            resize, customBoundingBox, imgTmpSize
+                        )
+
+                    # add bounding box to fit width and height
+                    fitBoundingBox = [
+                        ceil((landscapeSize["width"] - imgResizeDimensions[0]) / 2),
+                        ceil((landscapeSize["height"] - imgResizeDimensions[1]) / 2),
+                        ceil((landscapeSize["width"] - imgResizeDimensions[0]) / 2),
+                        ceil((landscapeSize["height"] - imgResizeDimensions[1]) / 2),
+                    ]
+                    imgCrop = get_imgCrop(imgCropBBox, fitBoundingBox, resizeFactor)
+                    # crop image to format of landscapeSize
+                    img = img.crop(imgCrop)
+                    # resize image to landscapeSize
+                    img.thumbnail(
+                        (landscapeSize["width"], landscapeSize["height"]),
+                        resample=Image.LANCZOS,
+                        reducing_gap=2.0,
+                    )
+                # cropped image is portrait
+                elif imgTmpSize[0] < imgTmpSize[1]:
+                    resize = {
+                        "side": portraitSize["side"],
+                        "dimension": portraitSize["dimension"],
+                    }
+                    # get resize factor
+                    resizeFactor, imgResizeDimensions = get_resize_options(
+                        resize, customBoundingBox, imgTmpSize
+                    )
+                    # check if resized image is within width x height
+                    if (
+                        portraitSize["side"] == "x"
+                        and imgResizeDimensions[1] > portraitSize["height"]
+                    ):
+                        resize = {
+                            "side": "y",
+                            "dimension": portraitSize["height"]
+                            - 2 * minimumBoundingBox,
+                        }
+                        resizeFactor, imgResizeDimensions = get_resize_options(
+                            resize, customBoundingBox, imgTmpSize
+                        )
+                    elif (
+                        portraitSize["side"] == "y"
+                        and imgResizeDimensions[0] > portraitSize["width"]
+                    ):
+                        resize = {
+                            "side": "x",
+                            "dimension": portraitSize["width"] - 2 * minimumBoundingBox,
+                        }
+                        resizeFactor, imgResizeDimensions = get_resize_options(
+                            resize, customBoundingBox, imgTmpSize
+                        )
+
+                    # add bounding box to fit width and height
+                    fitBoundingBox = [
+                        ceil((portraitSize["width"] - imgResizeDimensions[0]) / 2),
+                        ceil((portraitSize["height"] - imgResizeDimensions[1]) / 2),
+                        ceil((portraitSize["width"] - imgResizeDimensions[0]) / 2),
+                        ceil((portraitSize["height"] - imgResizeDimensions[1]) / 2),
+                    ]
+                    imgCrop = get_imgCrop(imgCropBBox, fitBoundingBox, resizeFactor)
+                    # crop image to format of portraitSize
+                    img = img.crop(imgCrop)
+                    # resize image to portraitSize
+                    img.thumbnail(
+                        (portraitSize["width"], portraitSize["height"]),
+                        resample=Image.LANCZOS,
+                        reducing_gap=2.0,
+                    )
+                else:
+                    print("Something went terribly wrong with image sizes...")
+                    quit()
+
+            # 3. non-zero customBoundingBox is specified
+            elif customBoundingBox != [0, 0, 0, 0]:
+                # get resize factor
+                resizeFactor, imgResizeDimensions = get_resize_options(
+                    resize, customBoundingBox, imgTmpSize
+                )
+                imgCrop = get_imgCrop(imgCropBBox, customBoundingBox, resizeFactor)
+                # crop image
+                # img = img.crop(imgCrop)
+
+                # crop inverted image => if original image has pure white background, bounding box is also white
+                # if original image has non-white background (e.g. light grey) and custom bounding box is grater
+                # than original image, the overlapping custom bounding box will be pure white!
+                img = ImageOps.invert(img).crop(imgCrop)
+                img = ImageOps.invert(img)
+                # resize if defined
+                if resize["dimension"] != 0:
+                    imgFinalDimensions = (
+                        imgResizeDimensions[0]
+                        + customBoundingBox[0]
+                        + customBoundingBox[2],
+                        imgResizeDimensions[1]
+                        + customBoundingBox[1]
+                        + customBoundingBox[3],
+                    )
+                    img.thumbnail(
+                        imgFinalDimensions, resample=Image.LANCZOS, reducing_gap=2.0
+                    )
+            # 4. zero customBoundingBox is specified
+            elif customBoundingBox == [0, 0, 0, 0]:
+                # get resize factor
+                resizeFactor, imgResizeDimensions = get_resize_options(
+                    resize, customBoundingBox, imgTmpSize
+                )
+                img = no_bbox_crop(img, imgCropBBox, imgResizeDimensions, resize)
+            # 5. some other condition not anticipated yet :)
+            else:
+                print("Something went terribly wrong with bounding box!")
+                quit()
 
             # save image with changed ppi if specified
             saveFile = os.path.join(destPath, imgBase)
